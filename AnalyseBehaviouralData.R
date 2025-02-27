@@ -2,7 +2,7 @@
 setwd("~/GitDir/CodeWithPapers/CategorySpecificAssociativeInference/")
 source("InitialisePaths.R")
 
-################## Read in data and organise it ##################
+################## Read in behavioural data and organise it ##################
 
 # Initialize empty dataframe to store all participants' data
 behavioural_data <- c()
@@ -26,7 +26,7 @@ behavioural_data <- relocate(behavioural_data,
 all(sort(unique(behavioural_data$Participant)) == sort(aim_participants))
 
 
-################## Analyse Test Phase Accuracy Data ##################
+################## Analyse test phase accuracy data ##################
 
 # Filter data to include only test phase trials
 test_data <- behavioural_data %>% 
@@ -96,48 +96,7 @@ accuracy_category_interac_posthoc <- full_join(
 accuracy_category_interac_posthoc <- correct_p_vals(accuracy_category_interac_posthoc, 
                                                     "p")
 
-accuracy_trialtypecategory_summary <- accuracy_trialtypecategory_data %>% 
-  group_by(trialtype, category) %>% 
-  do(summarise_data(., "PercentAccuracy"))
-
-
-(accuracy_categorytrialtype_plot <- ggplot(data = accuracy_trialtypecategory_summary, 
-                                          aes(x = trialtype, 
-                                              y = Mean, 
-                                              fill = category, 
-                                              colour = category))  +
-  geom_hline(yintercept = 50, 
-             size = 1, 
-             linetype = "dashed") +
-  geom_dotplot(data = accuracy_trialtypecategory_data, 
-               position = position_dodge(0.7),
-               mapping = aes(x = trialtype, 
-                             y = PercentAccuracy, 
-                             fill = category),
-               binaxis = 'y', 
-               stackdir = 'center', colour = "black", 
-               dotsize = 0.7, alpha = 0.4) +
-  geom_line(mapping = aes(group = category), 
-            position = position_dodge(0.7),
-            linewidth = 1.5) +
-  geom_errorbar(mapping = aes(ymin = Mean-SE, 
-                              ymax = Mean+SE), 
-                width = 0.3, 
-                size = 1.2, 
-                colour = "black", 
-                position = position_dodge(0.7)) +
-  geom_point(size = 7, 
-             shape = 21, 
-             colour = "black", 
-             position = position_dodge(0.7)) +
-  labs(x="Test Type", y="Accuracy", fill="", colour="") + 
-  coord_cartesian(ylim = c(35, 115)) +
-  scale_y_continuous(breaks = c(40, 60, 80, 100)) +
-  scale_color_manual(values = factor_levels$category$colours) +
-  scale_fill_manual(values = factor_levels$category$colours) +
-  x_axis_theme + y_axis_theme + paper_facet_theme + blank_bg_theme + legend_theme)
-
-################## Analyse Test Phase Reaction Time Data ##################
+################## Analyse test phase reaction time data ##################
 
 # Calculate RT metrics grouped by participant, trial type, and category
 rt_trialtypecategory_data <- test_data %>% 
@@ -206,13 +165,60 @@ rt_category_posthoc <- full_join(
 rt_category_posthoc <- correct_p_vals(rt_category_posthoc, 
                                       pvalcol = "p")
 
+################## Analyse eye-tracking data ##################
+
+
+################## Plot these ##################
+
+# Calculate summary statistics for accuracy data
+accuracy_trialtypecategory_summary <- accuracy_trialtypecategory_data %>% 
+  group_by(trialtype, category) %>% 
+  do(summarise_data(., "PercentAccuracy"))
+
+# Create plot for accuracy
+(accuracy_categorytrialtype_plot <- ggplot(data = accuracy_trialtypecategory_summary, 
+                                           aes(x = trialtype, 
+                                               y = Mean, 
+                                               fill = category, 
+                                               colour = category))  +
+    geom_hline(yintercept = 50, 
+               size = 1, 
+               linetype = "dashed") +
+    geom_dotplot(data = accuracy_trialtypecategory_data, 
+                 position = position_dodge(0.7),
+                 mapping = aes(x = trialtype, 
+                               y = PercentAccuracy, 
+                               fill = category),
+                 binaxis = 'y', 
+                 stackdir = 'center', colour = "black", 
+                 dotsize = 0.7, alpha = 0.4) +
+    geom_line(mapping = aes(group = category), 
+              position = position_dodge(0.7),
+              linewidth = 1.5) +
+    geom_errorbar(mapping = aes(ymin = Mean-SE, 
+                                ymax = Mean+SE), 
+                  width = 0.3, 
+                  size = 1.2, 
+                  colour = "black", 
+                  position = position_dodge(0.7)) +
+    geom_point(size = 7, 
+               shape = 21, 
+               colour = "black", 
+               position = position_dodge(0.7)) +
+    labs(x="Test Type", y="Accuracy", fill="", colour="") + 
+    coord_cartesian(ylim = c(35, 115)) +
+    scale_y_continuous(breaks = c(40, 60, 80, 100)) +
+    scale_color_manual(values = factor_levels$category$colours) +
+    scale_fill_manual(values = factor_levels$category$colours) +
+    x_axis_theme + y_axis_theme + paper_facet_theme + blank_bg_theme + legend_theme)
+
 
 # Calculate summary statistics for RT data
 rt_trialtypecategory_summary <- rt_trialtypecategory_data %>% 
   group_by(trialtype, category) %>% 
   do(summarise_data(., "MeanRT"))
 
-# Create plot for reaction times
+# Create plot for reaction time
 (rt_categorytrialtype_plot <- ggplot(data = rt_trialtypecategory_summary, 
                                      aes(x = trialtype, 
                                          y = Mean, 
@@ -250,6 +256,7 @@ rt_trialtypecategory_summary <- rt_trialtypecategory_data %>%
     scale_color_manual(values = factor_levels$category$colours) +
     scale_fill_manual(values = factor_levels$category$colours) +
     x_axis_theme + y_axis_theme + paper_facet_theme + blank_bg_theme + legend_theme)
+
 
 ggarrange(accuracy_categorytrialtype_plot,
           rt_categorytrialtype_plot,
