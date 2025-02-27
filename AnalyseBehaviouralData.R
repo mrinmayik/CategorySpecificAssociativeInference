@@ -1,6 +1,6 @@
 # Set working directory and source initialization file
 setwd("~/GitDir/CodeWithPapers/CategorySpecificAssociativeInference/")
-source("../InitialisePaths.R")
+source("InitialisePaths.R")
 
 ################## Read in data and organise it ##################
 
@@ -26,11 +26,16 @@ behavioural_data <- relocate(behavioural_data,
 all(sort(unique(behavioural_data$Participant)) == sort(aim_participants))
 
 
-################## Analyse Test Phase Data ##################
+################## Analyse Test Phase Accuracy Data ##################
 
 # Filter data to include only test phase trials
 test_data <- behavioural_data %>% 
-  filter(phase == "test")
+  filter(phase == "test") %>% 
+  mutate(category = factor(category,
+                           levels = factor_levels$category$labels),
+         trialtype = factor(trialtype,
+                            levels = factor_levels$trialtype_test$levels))
+
 
 # Calculate accuracy metrics grouped by participant, trial type, and category
 accuracy_trialtypecategory_data <- test_data %>% 
@@ -65,7 +70,8 @@ accuracy_trialtype_main_posthoc <- full_join(
   accuracy_trialtype_data %>% 
     as.data.frame() %>% 
     cohens_d(PercentAccuracy ~ trialtype,
-             paired = TRUE)
+             paired = TRUE),
+  by = join_by(.y., group1, group2, n1, n2)
 )
 
 # Perform post-hoc tests for category effects within each trial type
@@ -81,11 +87,173 @@ accuracy_category_interac_posthoc <- full_join(
     as.data.frame() %>% 
     group_by(trialtype) %>% 
     cohens_d(PercentAccuracy ~ category,
-             paired = TRUE)
+             paired = TRUE),
+  by = join_by(trialtype, .y., group1, group2, n1, n2)
 ) %>% 
   as.data.frame()
 
 # Apply multiple comparison correction to p-values
 accuracy_category_interac_posthoc <- correct_p_vals(accuracy_category_interac_posthoc, 
                                                     "p")
+
+accuracy_trialtypecategory_summary <- accuracy_trialtypecategory_data %>% 
+  group_by(trialtype, category) %>% 
+  do(summarise_data(., "PercentAccuracy"))
+
+
+(accuracy_categorytrialtype_plot <- ggplot(data = accuracy_trialtypecategory_summary, 
+                                          aes(x = trialtype, 
+                                              y = Mean, 
+                                              fill = category, 
+                                              colour = category))  +
+  geom_hline(yintercept = 50, 
+             size = 1, 
+             linetype = "dashed") +
+  geom_dotplot(data = accuracy_trialtypecategory_data, 
+               position = position_dodge(0.7),
+               mapping = aes(x = trialtype, 
+                             y = PercentAccuracy, 
+                             fill = category),
+               binaxis = 'y', 
+               stackdir = 'center', colour = "black", 
+               dotsize = 0.7, alpha = 0.4) +
+  geom_line(mapping = aes(group = category), 
+            position = position_dodge(0.7),
+            linewidth = 1.5) +
+  geom_errorbar(mapping = aes(ymin = Mean-SE, 
+                              ymax = Mean+SE), 
+                width = 0.3, 
+                size = 1.2, 
+                colour = "black", 
+                position = position_dodge(0.7)) +
+  geom_point(size = 7, 
+             shape = 21, 
+             colour = "black", 
+             position = position_dodge(0.7)) +
+  labs(x="Test Type", y="Accuracy", fill="", colour="") + 
+  coord_cartesian(ylim = c(35, 115)) +
+  scale_y_continuous(breaks = c(40, 60, 80, 100)) +
+  scale_color_manual(values = factor_levels$category$colours) +
+  scale_fill_manual(values = factor_levels$category$colours) +
+  x_axis_theme + y_axis_theme + paper_facet_theme + blank_bg_theme + legend_theme)
+
+################## Analyse Test Phase Reaction Time Data ##################
+
+# Calculate RT metrics grouped by participant, trial type, and category
+rt_trialtypecategory_data <- test_data %>% 
+  filter(accuracy == 1) %>% 
+  group_by(Participant, trialtype, category) %>% 
+  summarise(MeanRT = mean(test_RT, na.rm = TRUE))
+
+# Perform 2x2 repeated measures ANOVA on RT data
+# Factors: category and trial type
+rt_trialtypecategory_anova <- ezANOVA(data = rt_trialtypecategory_data,
+                                      dv = MeanRT,
+                                      within = c(category, trialtype),
+                                      wid = Participant,
+                                      detailed = TRUE)
+
+# Calculate RT metrics grouped by participant and trial type
+rt_trialtype_data <- test_data %>% 
+  group_by(Participant, trialtype) %>% 
+  summarise(MeanRT = mean(test_RT, na.rm = TRUE),
+            SDRT = sd(test_RT, na.rm = TRUE))
+
+# Perform post-hoc paired t-tests and calculate Cohen's d for trial type main effect
+rt_trialtype_posthoc <- full_join(
+  # Paired t-test between trial types
+  rt_trialtype_data %>% 
+    as.data.frame() %>% 
+    t_test(MeanRT ~ trialtype,
+           paired = TRUE),
+  # Calculate effect size (Cohen's d)
+  rt_trialtype_data %>% 
+    as.data.frame() %>% 
+    cohens_d(MeanRT ~ trialtype,
+             paired = TRUE),
+  by = join_by(.y., group1, group2, n1, n2)
+) %>% 
+  # Remove any existing adjusted p-values from the t_test operation
+  select(-starts_with("p.adj")) %>% 
+  # Need this for correct_p_vals to work
+  as.data.frame()
+
+# Apply Bonferroni correction to p-values for multiple comparisons
+rt_trialtype_posthoc <- correct_p_vals(rt_trialtype_posthoc, 
+                                       pvalcol = "p")
+
+
+# Perform post-hoc tests for category effects within each trial type
+rt_category_posthoc <- full_join(
+  # Paired t-tests between categories within each trial type
+  rt_trialtypecategory_data %>% 
+    as.data.frame() %>% 
+    group_by(trialtype) %>% 
+    t_test(MeanRT ~ category,
+           paired = TRUE),
+  # Calculate effect sizes (Cohen's d)
+  rt_trialtypecategory_data %>% 
+    as.data.frame() %>% 
+    group_by(trialtype) %>% 
+    cohens_d(MeanRT ~ category,
+             paired = TRUE),
+  by = join_by(.y., trialtype, group1, group2, n1, n2)
+) %>% 
+  # Need this for correct_p_vals to work
+  as.data.frame()
+
+# Apply multiple comparison correction to p-values
+rt_category_posthoc <- correct_p_vals(rt_category_posthoc, 
+                                      pvalcol = "p")
+
+
+# Calculate summary statistics for RT data
+rt_trialtypecategory_summary <- rt_trialtypecategory_data %>% 
+  group_by(trialtype, category) %>% 
+  do(summarise_data(., "MeanRT"))
+
+# Create plot for reaction times
+(rt_categorytrialtype_plot <- ggplot(data = rt_trialtypecategory_summary, 
+                                     aes(x = trialtype, 
+                                         y = Mean, 
+                                         fill = category, 
+                                         colour = category))  +
+    # Add individual participant data points
+    geom_dotplot(data = rt_trialtypecategory_data, 
+                 position = position_dodge(0.7),
+                 mapping = aes(x = trialtype, 
+                               y = MeanRT, 
+                               fill = category),
+                 binaxis = 'y', 
+                 stackdir = 'center', 
+                 colour = "black", 
+                 dotsize = 0.7, 
+                 alpha = 0.4) +
+    # Add lines connecting means
+    geom_line(mapping = aes(group = category), 
+              position = position_dodge(0.7),
+              linewidth = 1.5) +
+    # Add error bars
+    geom_errorbar(mapping = aes(ymin = Mean-SE, 
+                                ymax = Mean+SE), 
+                  width = 0.3, 
+                  size = 1.2, 
+                  colour = "black", 
+                  position = position_dodge(0.7)) +
+    # Add mean points
+    geom_point(size = 7, 
+               shape = 21, 
+               colour = "black", 
+               position = position_dodge(0.7)) +
+    # Add labels and customize appearance
+    labs(x="Test Type", y="Reaction Time (ms)", fill="", colour="") + 
+    scale_color_manual(values = factor_levels$category$colours) +
+    scale_fill_manual(values = factor_levels$category$colours) +
+    x_axis_theme + y_axis_theme + paper_facet_theme + blank_bg_theme + legend_theme)
+
+ggarrange(accuracy_categorytrialtype_plot,
+          rt_categorytrialtype_plot,
+          common.legend = TRUE, 
+          legend = "bottom") +
+  legend_theme
 
