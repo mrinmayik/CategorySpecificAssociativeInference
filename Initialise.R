@@ -1,6 +1,7 @@
 #!/bin/bash Rscript
 
-# Check if packages need to be installed
+################## Package Management ##################
+# Check if required packages are installed and install if missing
 required_packages <- c("stringr", "tidyr", "dplyr", "ggplot2", "ggpubr", "ez", "rstatix",
                        "psychReport")
 to_be_installed <- required_packages[!(required_packages %in% rownames(installed.packages()))]
@@ -10,6 +11,8 @@ if(length(to_be_installed) > 0){
   }
 }
 
+################## Library Imports ##################
+# Load all required libraries for data analysis and visualization
 library(stringr)
 library(tidyr)
 library(dplyr)
@@ -19,16 +22,19 @@ library(ez)
 library(rstatix)
 library(psychReport)
 
-# Setup paths where scripts are
+################## Path Setup ##################
+# Define base paths for scripts and data
 scripts_path <- "~/GitDir/CodeWithPapers/CategorySpecificAssociativeInference"
 
-# Initialise paths for the local machine
+# Change base_path to the folder that contains the downloaded data from OpenNeuro
+#All other paths are defined relative to base_path
 base_path <- "~/Desktop/AssociativeInference/"
 data_path <- paste0(base_path, "Defaced/")
 derivatives_path <- paste0(data_path, "derivatives/")
 deconvolve_path <- paste0(data_path, "DeconvolveOutput/")
 
-# Get participants information
+################## Participant Management ##################
+# Read and filter participant information based on task completion
 participants <- read.table(paste0(data_path,
                                   "/participants.tsv"),
                            header = TRUE)
@@ -39,6 +45,8 @@ loc_participants <- participants %>%
   filter(Localiser == "Completed") %>% 
   pull(participant_id)
 
+################## Factor Level Definitions ##################
+# Define factor levels and labels for different experimental conditions
 factor_levels <- list(category = list(levels = c("scene", "face"),
                                       labels = c("Scene", "Face"),
                                       colours = c("#66CC00", "#0099FF")),
@@ -55,21 +63,21 @@ factor_levels <- list(category = list(levels = c("scene", "face"),
                                                 labels = c("A\n(object)", "B\n(scene/face)", 
                                                          "B\n(scene/face)", "C\n(object)")))
 
-
-
-# Function to correct for p-values
-correct_p_vals <- function(df, pvalcol, usemethod="fdr"){
+################## Utility Functions ##################
+# Function to correct p-values using different methods
+correct_p_vals <- function(df, pvalcol, usemethod = "fdr"){
   #Is raw p-value significant?
-  df[, "sig"] <- ifelse(df[, pvalcol]<=0.05, "*", "")
+  df[, "sig"] <- ifelse(df[, pvalcol] <= 0.05, "*", "")
   
   #Correct p's based on method entered
-  df[, paste(pvalcol, "_", usemethod, "corrected", sep="")] <- p.adjust(df[, pvalcol], method=usemethod)
+  df[, paste(pvalcol, "_", usemethod, "corrected", sep = "")] <- p.adjust(df[, pvalcol], method = usemethod)
   #Is corrected p significant?
-  df[, paste("sig_", usemethod, "corrected", sep="")] <- ifelse(df[, paste(pvalcol, "_", usemethod, "corrected", sep="")]<=0.05, "*", "")
+  df[, paste("sig_", usemethod, "corrected", sep = "")] <- ifelse(df[, paste(pvalcol, "_", usemethod, "corrected", sep = "")] <= 0.05, "*", "")
   
   return(df)
 }
 
+# Function to calculate summary statistics for a given column
 summarise_data <- function(df, col_name, rm_na = FALSE){
   df <- as.data.frame(df)
   M <- mean(df[,col_name], na.rm = rm_na)
@@ -83,7 +91,8 @@ summarise_data <- function(df, col_name, rm_na = FALSE){
   data.frame(Mean=M, SD=SD, SE=SE, LCI=LCI, HCI=HCI, MeanPlusSE=MeanPlusSE, MeanMinusSE, Rows=NumOfRows)
 }
 
-
+################## Plotting Themes ##################
+# Define consistent themes for paper-quality visualizations
 paper_facet_theme <- theme(strip.text.x = element_text(size = 22, colour = "black"),
                            strip.text.y = element_text(size = 22, colour = "black"), 
                            strip.background = element_rect(color="white", fill="white", linewidth=1.5, linetype="solid"),

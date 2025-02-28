@@ -1,6 +1,6 @@
 # Set working directory and source initialization file
 setwd("~/GitDir/CodeWithPapers/CategorySpecificAssociativeInference/")
-source("InitialisePaths.R")
+source("Initialise.R")
 
 ################## Read in behavioural data and organise it ##################
 
