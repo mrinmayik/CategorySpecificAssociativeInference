@@ -196,38 +196,38 @@ all(sort(unique(et_data$Participant)) == sort(aim_participants))
 # Create new variables and convert categorical variables to factors
 et_data <- et_data %>% 
   mutate(
-    # Combine item type and trial type into a single identifier
-    ia_itemtype_trialtype = paste(ia_item_type, trialtype, sep = "_"),
+    # Combine item type and pair type into a single identifier
+    ia_itemtype_pairtype = paste(ia_item_type, pairtype, sep = "_"),
     # Convert category to factor with predefined levels
     category = factor(category,
                       levels = factor_levels$category$labels),
-    # Convert trial type to factor with predefined study phase levels
-    trialtype = factor(trialtype,
-                       levels = factor_levels$trialtype_study$levels),
+    # Convert pair type to factor with predefined study phase levels
+    pairtype = factor(pairtype,
+                      levels = factor_levels$pairtype_study$levels),
     # Convert combined identifier to factor with predefined levels and labels
-    ia_itemtype_trialtype = factor(ia_itemtype_trialtype,
-                                   levels = factor_levels$studyitem_pairtype$levels,
-                                   labels = factor_levels$studyitem_pairtype$labels))
+    ia_itemtype_pairtype = factor(ia_itemtype_pairtype,
+                                  levels = factor_levels$studyitem_pairtype$levels,
+                                  labels = factor_levels$studyitem_pairtype$labels))
 
 # Calculate number of fixations for each trial and interest area
 fixnum_data <- et_data %>% 
   # Group by all relevant variables to maintain trial-level data
-  group_by(Participant, block, trial, category, trialtype, ia_item_type, ia_itemtype_trialtype) %>% 
-  # Count number of fixations (using length of ia_item_type as each row represents one fixation)
+  group_by(Participant, block, trial, category, pairtype, ia_item_type, ia_itemtype_pairtype) %>% 
+  # Count number of fixations
   summarise(num_fix = length(ia_item_type)) 
 
 # Calculate mean number of fixations across trials for each condition
-fixnum_categorytrialtypeitemtype_data <- fixnum_data %>% 
+fixnum_categorypairtypeitemtype_data <- fixnum_data %>% 
   # Group by participant and condition variables
-  group_by(Participant, category, trialtype, ia_item_type, ia_itemtype_trialtype) %>% 
+  group_by(Participant, category, pairtype, ia_item_type, ia_itemtype_pairtype) %>% 
   # Calculate mean number of fixations
   summarise(mean_num_fix = mean(num_fix))
 
 # Perform 3-way repeated measures ANOVA on fixation count data
-fixnum_categorytrialtypeitemtype_anova <- 
-  ezANOVA(data = fixnum_categorytrialtypeitemtype_data, 
+fixnum_categorypairtypeitemtype_anova <- 
+  ezANOVA(data = fixnum_categorypairtypeitemtype_data, 
           wid = Participant, 
-          within = c(category, trialtype, ia_item_type),
+          within = c(category, pairtype, ia_item_type),
           dv = mean_num_fix,
           detailed = TRUE)
 
@@ -281,53 +281,54 @@ fixnum_categoryitemtype_posthoc <-
                  "p")
 
 # Posthocs for the pair type x item type interaction
-fixnum_trialtypeitemtype_data <- fixnum_data %>% 
-  group_by(Participant, trialtype, ia_item_type) %>% 
+fixnum_pairtypeitemtype_data <- fixnum_data %>% 
+  group_by(Participant, pairtype, ia_item_type) %>% 
   summarise(mean_num_fix = mean(num_fix))
 
-# Perform post-hoc tests for the trial type x item type interaction
-fixnum_trialtypeitemtype_posthoc <- bind_rows(
-  # First analysis: Compare trial types within each item type
+# Perform post-hoc tests for the pair type x item type interaction
+fixnum_pairtypeitemtype_posthoc <- bind_rows(
+  # First analysis: Compare pair types within each item type
   full_join(
-    # Conduct paired t-tests comparing trial types for each item type
-    fixnum_trialtypeitemtype_data %>% 
+    # Conduct paired t-tests comparing pair types for each item type
+    fixnum_pairtypeitemtype_data %>% 
       group_by(ia_item_type) %>% 
-      t_test(mean_num_fix ~ trialtype,
+      t_test(mean_num_fix ~ pairtype,
              paired = TRUE),
     # Calculate effect sizes (Cohen's d) for the same comparisons
-    fixnum_trialtypeitemtype_data %>% 
+    fixnum_pairtypeitemtype_data %>% 
       group_by(ia_item_type) %>% 
-      cohens_d(mean_num_fix ~ trialtype,
+      cohens_d(mean_num_fix ~ pairtype,
                paired = TRUE),
     # Join t-test results with effect sizes
     by = join_by(.y., ia_item_type, group1, group2, n1, n2)
   ) %>% 
     # Rename ia_item_type column to 'within' for bind_rows
     rename(within = ia_item_type),
-  # Second analysis: Compare item types within each trial type
+  # Second analysis: Compare item types within each pair type
   full_join(
     # Conduct paired t-tests comparing item types for each trial type
-    fixnum_trialtypeitemtype_data %>% 
-      group_by(trialtype) %>% 
+    # Conduct paired t-tests comparing item types for each pair type
+    fixnum_pairtypeitemtype_data %>% 
+      group_by(pairtype) %>% 
       t_test(mean_num_fix ~ ia_item_type,
              paired = TRUE),
     # Calculate effect sizes (Cohen's d) for the same comparisons
-    fixnum_trialtypeitemtype_data %>% 
-      group_by(trialtype) %>% 
+    fixnum_pairtypeitemtype_data %>% 
+      group_by(pairtype) %>% 
       cohens_d(mean_num_fix ~ ia_item_type,
                paired = TRUE),
     # Join t-test results with effect sizes
-    by = join_by(.y., trialtype, group1, group2, n1, n2)
+    by = join_by(.y., pairtype, group1, group2, n1, n2)
   ) %>% 
     # Rename trialtype column to 'within' for bind_rows
-    dplyr::rename(within = trialtype)
+    dplyr::rename(within = pairtype)
 ) %>% 
   # Need this for correct_p_vals to work
   as.data.frame()
 
 # Apply multiple comparison correction to p-values
-fixnum_trialtypeitemtype_posthoc <- 
-  correct_p_vals(fixnum_trialtypeitemtype_posthoc,
+fixnum_pairtypeitemtype_posthoc <- 
+  correct_p_vals(fixnum_pairtypeitemtype_posthoc,
                  "p")
 
 ################## Plot these ##################
@@ -425,22 +426,22 @@ rt_categorytrialtype_plot <-
 
 
 # Calculate summary statistics for fixation count data
-fixnum_categorytrialtypeitemtype_summary <- fixnum_categorytrialtypeitemtype_data %>% 
-  group_by(category, trialtype, 
-           ia_item_type, ia_itemtype_trialtype) %>% 
+fixnum_categorypairtypeitemtype_summary <- fixnum_categorypairtypeitemtype_data %>% 
+  group_by(category, pairtype, 
+           ia_item_type, ia_itemtype_pairtype) %>% 
   do(summarise_data(., "mean_num_fix"))
 
-fixnum_categorytrialtypeitemtype_plot <- 
-  ggplot(data = fixnum_categorytrialtypeitemtype_summary, 
-         aes(x = ia_itemtype_trialtype, 
+fixnum_categorytypeitemtype_plot <- 
+  ggplot(data = fixnum_categorypairtypeitemtype_summary, 
+         aes(x = ia_itemtype_pairtype, 
              y = Mean, 
              fill = category, 
              colour = category)) +
-  facet_wrap(~trialtype, scales="free_x") +
+  facet_wrap(~pairtype, scales="free_x") +
   # Add individual participant data points
-  geom_dotplot(data = fixnum_categorytrialtypeitemtype_data, 
+  geom_dotplot(data = fixnum_categorypairtypeitemtype_data, 
                position = position_dodge(0.7),
-               mapping = aes(x = ia_itemtype_trialtype, 
+               mapping = aes(x = ia_itemtype_pairtype, 
                              y = mean_num_fix, 
                              fill = category),
                binaxis = 'y', 
@@ -465,7 +466,7 @@ fixnum_categorytrialtypeitemtype_plot <-
              colour = "black", 
              position = position_dodge(0.7)) +
   # Add labels and customize appearance
-  labs(x="Test Type", y="Mean Fixation Count", fill="", colour="") + 
+  labs(x="Pair Type", y="Mean Fixation Count", fill="", colour="") + 
   scale_color_manual(values = factor_levels$category$colours) +
   scale_fill_manual(values = factor_levels$category$colours) +
   x_axis_theme + y_axis_theme + paper_facet_theme + blank_bg_theme + legend_theme
@@ -473,13 +474,13 @@ fixnum_categorytrialtypeitemtype_plot <-
 
 # Create final figure arrangement with all plots
 blank <- ggplot() + theme_void()
-ggarrange(
+(behavioural_plots <- ggarrange(
   # Top row: accuracy and RT plots with blank space for alignment
   ggarrange(accuracy_categorytrialtype_plot, rt_categorytrialtype_plot, blank, nrow = 1,
             widths = c(1, 1, 0), legend = "none"),
   # Bottom row: fixation count plot centered
-  ggarrange(blank, fixnum_categorytrialtypeitemtype_plot, blank, nrow = 1,
+  ggarrange(blank, fixnum_categorytypeitemtype_plot, blank, nrow = 1,
             widths = c(0.5, 1, 0.5), legend = "none"),
   nrow = 2,
   legend = "none"
-)
+))
