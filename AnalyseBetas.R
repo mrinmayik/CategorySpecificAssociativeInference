@@ -31,30 +31,40 @@ all(sort(unique(locbetas_data$Participant)) == sort(loc_participants))
 
 
 ################## Analyse betas ##################
+
+# Initialize empty vectors to store ANOVA results
 beta_anova <- c()
 beta_anova_detailed <- c()
 
 #### FIRST: Run ANOVA ####
+# Loop through each ROI in the dataset
 for(roi in unique(locbetas_data$Area)){
+  # Filter data for current ROI
   beta_roi_data <- locbetas_data[locbetas_data$Area == roi, ]
   
-  beta_anova_roi <- ezANOVA(
+  # Perform repeated measures ANOVA
+  # Tests effects of Category and Hemisphere on Beta values
+  beta_anova_test <- ezANOVA(
     data = beta_roi_data, 
-    wid = Participant, 
-    within = c(Category, Hemisphere),
-    dv = Beta, 
-    detailed = TRUE
+    wid = Participant,              # Subject identifier
+    within = c(Category, Hemisphere), # Within-subject factors
+    dv = Beta,                      # Dependent variable
+    detailed = TRUE                 # Request detailed output
   )
-  beta_anova_df <- aovEffectSize(beta_anova_roi)$ANOVA
+  # Calculate effect sizes for the ANOVA results
+  beta_anova_df <- aovEffectSize(beta_anova_test)$ANOVA
   
-  beta_anova_detailed[[roi]] <- beta_anova_roi
+  # Store results:
+  # Detailed results stored by ROI name
+  beta_anova_detailed[[roi]] <- beta_anova_test
+  # Summary results combined into single dataframe
   beta_anova <- rbind(beta_anova, 
                       cbind(data.frame(Area = roi, 
                                      Event = "Localiser"), 
                            beta_anova_df))
 }
 
-#Only keep handsegmented ROIs so we can correct for them
+# Filter to keep MTL ROIs and correct ANOVA results for multiple comparisons
 beta_anova_mtl <- beta_anova %>% 
   filter(Area %in% mtl_rois,
          Effect != "(Intercept)")
@@ -64,23 +74,29 @@ beta_anova_mtl <- beta_anova_mtl %>%
   )
 
 ####SECOND run Posthocs: ####
+# Initialize empty lists/vectors for storing results
 beta_plots <- list()
 beta_posthoc <- c()
+
+# Loop through each ROI
 for(roi in unique(locbetas_data$Area)){
+  # Filter data for current ROI
   beta_data_roi <- locbetas_data %>%
     filter(Area == roi)
   beta_anova_roi <- beta_anova_mtl %>% 
     filter(Area == roi)
   
-  #If there is any interaction with hemisphere, then keep hemisphere for posthocs. 
-  #If not, collapse
+  # Check for hemisphere interactions
   if(any(beta_anova_roi %>% 
+    # If there's a significant interaction between Category and Hemisphere,
+    # keep hemispheres separate for analysis
          filter(grepl("Category:Hemisphere", Effect)) %>% 
          pull(p_fdrcorrected) 
          <= 0.05)){
     beta_data_roi <- beta_data_roi
     hemi_interac <- TRUE
   }else if(all(beta_anova_roi %>% 
+    # If no significant hemisphere interaction, collapse across hemispheres
                filter(grepl("Category:Hemisphere", Effect)) %>% 
                pull(p_fdrcorrected) 
                > 0.05)){
@@ -95,38 +111,47 @@ for(roi in unique(locbetas_data$Area)){
     hemi_interac <- FALSE
   }
   
-  # Compute mean Betas per Area and Category
+  # Calculate mean beta values for each Area and Category combination
   mean_betas <- beta_data_roi %>%
     group_by(Area, Category) %>%
     summarise(Mean_Beta = mean(Beta, na.rm = TRUE), .groups = "drop")
   
-  # Generate all pairwise combinations within each Area
+  # Create all possible pairwise category comparisons and calculate differences
   pairwise_diffs <- mean_betas %>%
     group_by(Area) %>%
-    summarise(pairwise = list(combn(Category, 2, simplify = FALSE)), .groups = "drop") %>%
+    # Generate all possible category pairs
+    summarise(pairwise = list(combn(Category, 2, simplify = FALSE)), 
+              .groups = "drop") %>%
     unnest(pairwise) %>%
+    # Extract category names from pairs
     mutate(Category1 = purrr::map_chr(pairwise, ~ as.character(.x[1])),
            Category2 = purrr::map_chr(pairwise, ~ as.character(.x[2]))) %>%
     select(-pairwise) %>%
+    # Join mean beta values for each category
     left_join(mean_betas, by = c("Area", "Category1" = "Category")) %>%
     rename(Mean_Beta1 = Mean_Beta) %>%
     left_join(mean_betas, by = c("Area", "Category2" = "Category")) %>%
     rename(Mean_Beta2 = Mean_Beta,
            group1 = Category1,
            group2 = Category2) %>%
+    # Calculate difference between categories
     mutate(MeanDiff = Mean_Beta1 - Mean_Beta2)
   
+  # Perform post-hoc tests: t-tests and Cohen's d
   beta_posthoc_roi <- full_join(
+    # Paired t-tests between categories
     beta_data_roi %>% 
       group_by(Hemisphere) %>% 
       t_test(Beta ~ Category,
              paired = TRUE),
+    # Effect size calculations
     beta_data_roi %>% 
       group_by(Hemisphere) %>% 
       cohens_d(Beta ~ Category,
                paired = TRUE),
     by = join_by(Hemisphere, .y., group1, group2, n1, n2)
   ) %>% 
+    # Add mean differences and reorganize columns
     full_join(pairwise_diffs,
               by = c("group1", "group2")) %>% 
     relocate(Area) %>% 
@@ -134,12 +159,14 @@ for(roi in unique(locbetas_data$Area)){
     relocate(c(effsize, magnitude), .after = df) %>% 
     select(-starts_with("p.adj"))
   
+  # Combine results with previous ROIs
   beta_posthoc <- bind_rows(
     beta_posthoc_roi,
     beta_posthoc
   )
   
   #### THIRD: Plot the Betas ####
+  # Format factor levels for plotting
   beta_data_roi <- beta_data_roi %>% 
     mutate(Category = factor(Category,
                              levels = factor_levels$category_localiser$levels,
@@ -149,6 +176,7 @@ for(roi in unique(locbetas_data$Area)){
                                labels = factor_levels$hemisphere$labels),
            Hemi_Area = paste(beta_data_roi$Hemisphere, beta_data_roi$Area))
   
+  # Set plot parameters based on ROI type
   roi_type <- factor_levels$rois$roi_type[factor_levels$rois$levels == roi]
   if(roi_type == "HC"){
     ylims <- c(-10, 20)
@@ -164,12 +192,11 @@ for(roi in unique(locbetas_data$Area)){
     max_y_range <- ylims[2] - min(beta_data_roi$Beta)
   }
   
+  # Calculate plot parameters for consistent dot sizes
   dotsize <- (max(beta_data_roi$Beta) - min(beta_data_roi$Beta))/max_y_range
-  # Calculate a consistent binwidth based on the global y-range
-  global_binwidth <- max_y_range/30  # Divide the max range into 30 bins, adjust as needed
+  global_binwidth <- max_y_range/30  # Divide the max range into 30 bins
   
-  
-  #Plot together
+  # Create boxplot with overlaid dot plot
   beta_boxplot <- ggplot(data = beta_data_roi, 
                        aes(x = Category, 
                            y = Beta, 
@@ -196,14 +223,16 @@ for(roi in unique(locbetas_data$Area)){
   beta_plots[[roi]] <- beta_boxplot
 }
 
+# Store results in final variables
 anova_tests_loc_cat <- beta_anova
 anova_tests_detailed_loc_cat <- beta_anova_detailed
 beta_plots_loc_cat <- beta_plots
 beta_posthoc_loc_cat <- beta_posthoc
 
-#Only keep handsegmented ROIs so we can correct for them
+# Process MTL ROIs separately
 beta_posthoc_mtl <- beta_posthoc %>% 
   filter(Area %in% mtl_rois)
+# Apply FDR correction and determine which category shows greater activation
 beta_posthoc_mtl <- correct_p_vals(beta_posthoc_mtl, "p") %>% 
   mutate(Greater = ifelse(Mean_Beta1 > Mean_Beta2,
                           group1,
@@ -211,17 +240,22 @@ beta_posthoc_mtl <- correct_p_vals(beta_posthoc_mtl, "p") %>%
                                  group2, 
                                  "Equal")))
 
+# Summarize category selectivity
+# Count significant differences where one category shows consistently greater activation
 category_selectivity <- beta_posthoc_mtl %>% 
   filter(p_fdrcorrected <= 0.05) %>% 
   group_by(Area, Hemisphere, Greater) %>% 
   summarise(ln = length(Greater))
 
+# Identify ROIs that are selective for scenes or faces
 scene_face_selective_loc <- c(
+  # Scene-selective ROIs (greater response to scenes than faces and objects)
   category_selectivity %>% 
     filter(Greater == "scene",
            ln == 2) %>% 
     pull(Area) %>% 
     unique(),
+  # Face-selective ROIs (greater response to faces than scenes and objects)
   category_selectivity %>% 
     filter(Greater == "face",
            ln == 2) %>% 
