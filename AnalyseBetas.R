@@ -196,7 +196,7 @@ for(roi in unique(locbetas_data$Area)){
            Hemisphere = factor(Hemisphere,
                                levels = factor_levels$hemisphere$levels,
                                labels = factor_levels$hemisphere$labels),
-           Hemi_Area = paste(beta_data_roi$Hemisphere, beta_data_roi$Area))
+           Hemi_Area = paste(Hemisphere, Area))
   
   # Set plot parameters based on ROI type
   roi_type <- factor_levels$rois$roi_type[factor_levels$rois$levels == roi]
@@ -237,7 +237,7 @@ for(roi in unique(locbetas_data$Area)){
     scale_y_continuous(breaks = ybreaks) +
     labs(x = "Category",
          y = "Percent Signal Change",
-         fill = "Category") +
+         fill = "") +
     scale_fill_manual(values = factor_levels$category_localiser$colours) +
     geom_hline(yintercept=0, linewidth=0.5, linetype="dashed", alpha=0.5) + 
     x_axis_theme + y_axis_theme + paper_facet_theme + 
@@ -404,63 +404,6 @@ for(roi in unique(studyABbetas_data$Area)){
       relocate(Area),
     beta_posthoc
   )
-  
-  ######## THIRD: Plot the Betas ########
-  # Format factor levels for plotting
-  beta_data_roi <- beta_data_roi %>% 
-    mutate(Category = factor(Category,
-                             levels = factor_levels$category_localiser$levels,
-                             labels = factor_levels$category_localiser$labels),
-           Hemisphere = factor(Hemisphere,
-                               levels = factor_levels$hemisphere$levels,
-                               labels = factor_levels$hemisphere$labels),
-           Hemi_Area = paste(beta_data_roi$Hemisphere, beta_data_roi$Area))
-  
-  # Set plot parameters based on ROI type
-  roi_type <- factor_levels$rois$roi_type[factor_levels$rois$levels == roi]
-  if(roi_type == "HC"){
-    ylims <- c(-10, 20)
-    ybreaks <- seq(ylims[1], ylims[2], by = 10)
-    max_y_range <- diff(ylims)
-  }else if(roi_type == "MTL"){
-    ylims <- c(-10, 50)
-    ybreaks <- c(-10, 0, seq(20, ylims[2], by = 20))
-    max_y_range <- diff(ylims)
-  }else if(roi_type == "LocCat"){
-    ylims <- c(NA, (max(beta_data_roi$Beta)+10))
-    ybreaks <- seq(-50, ylims[2], by = 50)
-    max_y_range <- ylims[2] - min(beta_data_roi$Beta)
-  }
-  
-  # Calculate plot parameters for consistent dot sizes
-  dotsize <- (max(beta_data_roi$Beta) - min(beta_data_roi$Beta))/max_y_range
-  global_binwidth <- max_y_range/30  # Divide the max range into 30 bins
-  
-  # Create boxplot with overlaid dot plot
-  beta_boxplot <- ggplot(data = beta_data_roi, 
-                         aes(x = Category, 
-                             y = Beta, 
-                             fill = Category)) +
-    geom_boxplot(position = position_dodge(1),
-                 lwd = 1.5,
-                 outlier.colour = NA) +
-    geom_dotplot(binaxis = 'y',
-                 stackdir = 'center',
-                 position = position_dodge(1),
-                 binwidth = global_binwidth,
-                 dotsize = 0.75,
-                 alpha = 0.4) +
-    facet_wrap(~Hemi_Area) + 
-    coord_cartesian(ylim = ylims) +
-    scale_y_continuous(breaks = ybreaks) +
-    labs(x = "Category",
-         y = "Percent Signal Change",
-         fill = "Category") +
-    scale_fill_manual(values = factor_levels$category_localiser$colours) +
-    geom_hline(yintercept=0, linewidth=0.5, linetype="dashed", alpha=0.5) + 
-    x_axis_theme + y_axis_theme + paper_facet_theme + 
-    blank_bg_theme + legend_theme
-  beta_plots[[roi]] <- beta_boxplot
 }
 
 # Store results in final variables
@@ -635,61 +578,64 @@ for(roi in scene_face_selective){
   )
   
   ######## THIRD: Plot the Betas ########
-  # # Format factor levels for plotting
-  # beta_data_roi <- beta_data_roi %>% 
-  #   mutate(Category = factor(Category,
-  #                            levels = factor_levels$category_localiser$levels,
-  #                            labels = factor_levels$category_localiser$labels),
-  #          Hemisphere = factor(Hemisphere,
-  #                              levels = factor_levels$hemisphere$levels,
-  #                              labels = factor_levels$hemisphere$labels),
-  #          Hemi_Area = paste(beta_data_roi$Hemisphere, beta_data_roi$Area))
-  # 
-  # # Set plot parameters based on ROI type
-  # roi_type <- factor_levels$rois$roi_type[factor_levels$rois$levels == roi]
-  # if(roi_type == "HC"){
-  #   ylims <- c(-10, 20)
-  #   ybreaks <- seq(ylims[1], ylims[2], by = 10)
-  #   max_y_range <- diff(ylims)
-  # }else if(roi_type == "MTL"){
-  #   ylims <- c(-10, 50)
-  #   ybreaks <- c(-10, 0, seq(20, ylims[2], by = 20))
-  #   max_y_range <- diff(ylims)
-  # }else if(roi_type == "LocCat"){
-  #   ylims <- c(NA, (max(beta_data_roi$Beta)+10))
-  #   ybreaks <- seq(-50, ylims[2], by = 50)
-  #   max_y_range <- ylims[2] - min(beta_data_roi$Beta)
-  # }
-  # 
-  # # Calculate plot parameters for consistent dot sizes
-  # dotsize <- (max(beta_data_roi$Beta) - min(beta_data_roi$Beta))/max_y_range
-  # global_binwidth <- max_y_range/30  # Divide the max range into 30 bins
-  # 
-  # # Create boxplot with overlaid dot plot
-  # beta_boxplot <- ggplot(data = beta_data_roi, 
-  #                        aes(x = Category, 
-  #                            y = Beta, 
-  #                            fill = Category)) +
-  #   geom_boxplot(position = position_dodge(1),
-  #                lwd = 1.5,
-  #                outlier.colour = NA) +
-  #   geom_dotplot(binaxis = 'y',
-  #                stackdir = 'center',
-  #                position = position_dodge(1),
-  #                binwidth = global_binwidth,
-  #                dotsize = 0.75,
-  #                alpha = 0.4) +
-  #   facet_wrap(~Hemi_Area) + 
-  #   coord_cartesian(ylim = ylims) +
-  #   scale_y_continuous(breaks = ybreaks) +
-  #   labs(x = "Category",
-  #        y = "Percent Signal Change",
-  #        fill = "Category") +
-  #   scale_fill_manual(values = factor_levels$category_localiser$colours) +
-  #   geom_hline(yintercept=0, linewidth=0.5, linetype="dashed", alpha=0.5) + 
-  #   x_axis_theme + y_axis_theme + paper_facet_theme + 
-  #   blank_bg_theme + legend_theme
-  # beta_plots[[roi]] <- beta_boxplot
+  # Format factor levels for plotting
+  beta_data_roi <- beta_data_roi %>%
+    mutate(Category = factor(Category,
+                             levels = factor_levels$category_localiser$levels,
+                             labels = factor_levels$category_localiser$labels),
+           PairType = factor(PairType,
+                             levels = factor_levels$trialtype_study$levels,
+                             labels = factor_levels$trialtype_study$labels),
+           Hemisphere = factor(Hemisphere,
+                               levels = factor_levels$hemisphere$levels,
+                               labels = factor_levels$hemisphere$labels),
+           Hemi_Area = paste(Hemisphere, Area))
+
+  # Set plot parameters based on ROI type
+  roi_type <- factor_levels$rois$roi_type[factor_levels$rois$levels == roi]
+  if(roi_type == "HC"){
+    ylims <- c(-10, 20)
+    ybreaks <- seq(ylims[1], ylims[2], by = 10)
+    max_y_range <- diff(ylims)
+  }else if(roi_type == "MTL"){
+    ylims <- c(-10, 50)
+    ybreaks <- c(-10, 0, seq(20, ylims[2], by = 20))
+    max_y_range <- diff(ylims)
+  }else if(roi_type == "LocCat"){
+    ylims <- c(NA, (max(beta_data_roi$Beta)+10))
+    ybreaks <- seq(-50, ylims[2], by = 50)
+    max_y_range <- ylims[2] - min(beta_data_roi$Beta)
+  }
+
+  # Calculate plot parameters for consistent dot sizes
+  dotsize <- (max(beta_data_roi$Beta) - min(beta_data_roi$Beta))/max_y_range
+  global_binwidth <- max_y_range/30  # Divide the max range into 30 bins
+
+  # Create boxplot with overlaid dot plot
+  beta_boxplot <- ggplot(data = beta_data_roi,
+                         aes(x = PairType,
+                             y = Beta,
+                             fill = Category)) +
+    geom_boxplot(position = position_dodge(1),
+                 lwd = 1.5,
+                 outlier.colour = NA) +
+    geom_dotplot(binaxis = 'y',
+                 stackdir = 'center',
+                 position = position_dodge(1),
+                 binwidth = global_binwidth,
+                 dotsize = 0.75,
+                 alpha = 0.4) +
+    facet_wrap(~Hemi_Area) +
+    coord_cartesian(ylim = ylims) +
+    scale_y_continuous(breaks = ybreaks) +
+    labs(x = "Pair Type",
+         y = "Percent Signal Change",
+         fill = "") +
+    scale_fill_manual(values = factor_levels$category$colours) +
+    geom_hline(yintercept=0, linewidth=0.5, linetype="dashed", alpha=0.5) +
+    x_axis_theme + y_axis_theme + paper_facet_theme +
+    blank_bg_theme + legend_theme
+  beta_plots[[roi]] <- beta_boxplot
 }
 
 # Store results in final variables
@@ -705,4 +651,243 @@ beta_posthoc_study_pairtypecat <- beta_posthoc_study_pairtypecat %>%
   do(correct_p_vals(., "p"))
 
 
+####################### STEP 3: Analyse AIM test phase #######################
+testbetas_data <- aimbetas_data %>% 
+  filter(ExperimentPhase == "test",
+         Memory == "Correct")
 
+######## FIRST: Run ANOVA ########
+# Initialize empty vectors to store ANOVA results
+beta_anova <- c()
+beta_anova_detailed <- c()
+# Loop through each ROI in the dataset
+for(roi in scene_face_selective){
+  # Filter data for current ROI
+  beta_roi_data <- testbetas_data %>% 
+    filter(Area == roi)
+  
+  # Perform repeated measures ANOVA
+  # Tests effects of Category and Hemisphere on Beta values
+  beta_anova_test <- ezANOVA(
+    data = beta_roi_data, 
+    wid = Participant,              # Subject identifier
+    within = c(Category, 
+               TestType,
+               Hemisphere), # Within-subject factors
+    dv = Beta,                      # Dependent variable
+    detailed = TRUE                 # Request detailed output
+  )
+  # Calculate effect sizes for the ANOVA results
+  beta_anova_df <- aovEffectSize(beta_anova_test)$ANOVA
+  
+  # Store results:
+  # Detailed results stored by ROI name
+  beta_anova_detailed[[roi]] <- beta_anova_test
+  # Summary results combined into single dataframe
+  beta_anova <- rbind(beta_anova, 
+                      cbind(data.frame(Area = roi, 
+                                       Event = "Test"), 
+                            beta_anova_df))
+}
+
+# Filter to keep MTL ROIs and correct ANOVA results for multiple comparisons
+beta_anova_mtl <- beta_anova %>% 
+  filter(Area %in% scene_face_selective,
+         Effect != "(Intercept)")
+beta_anova_mtl <- beta_anova_mtl %>% 
+  group_by(Effect) %>% 
+  do(correct_p_vals(., "p")
+  )
+
+######## SECOND run Posthocs: ########
+
+# Initialize empty lists/vectors for storing results
+beta_plots <- list()
+beta_posthoc <- c()
+
+# Loop through each ROI
+for(roi in scene_face_selective){
+  # Filter data for current ROI
+  beta_data_roi <- testbetas_data %>%
+    filter(Area == roi)
+  beta_anova_roi <- beta_anova_mtl %>% 
+    filter(Area == roi)
+  
+  # Check for hemisphere interactions
+  if(any(beta_anova_roi %>% 
+         filter(grepl("Category:TestType:Hemisphere", Effect)) %>% 
+         pull(p_fdrcorrected) 
+         <= 0.05)){
+    # If there's a significant interaction between Category and Hemisphere,
+    # keep hemispheres separate for analysis
+    beta_data_roi <- beta_data_roi
+    hemi_interac <- TRUE
+  }else if(all(beta_anova_roi %>% 
+               filter(grepl("Category:TestType:Hemisphere", Effect)) %>% 
+               pull(p_fdrcorrected) 
+               > 0.05)){
+    # If no significant hemisphere interaction, collapse across hemispheres
+    beta_data_roi <- as.data.frame(
+      beta_data_roi %>% 
+        group_by(Participant, ExperimentPhase, 
+                 Category, TestType, Area) %>% 
+        summarise(Beta = mean(Beta)) %>% 
+        ungroup() %>% 
+        mutate(Hemisphere = "Collapsed")
+    )
+    hemi_interac <- FALSE
+  }
+  
+  # Perform post-hoc tests: t-tests and Cohen's d
+  beta_posthoc_roi <- bind_rows(
+    full_join(
+      # Paired t-tests between categories
+      beta_data_roi %>% 
+        group_by(Hemisphere, Category) %>% 
+        t_test(Beta ~ TestType,
+               paired = TRUE),
+      # Effect size calculations
+      beta_data_roi %>% 
+        group_by(Hemisphere, Category) %>% 
+        cohens_d(Beta ~ TestType,
+                 paired = TRUE),
+      by = join_by(Hemisphere, Category, .y., group1, group2, n1, n2)
+    ) %>% 
+      dplyr::rename(within = Category),
+    full_join(
+      # Paired t-tests between categories
+      beta_data_roi %>% 
+        group_by(Hemisphere, TestType) %>% 
+        t_test(Beta ~ Category,
+               paired = TRUE),
+      # Effect size calculations
+      beta_data_roi %>% 
+        group_by(Hemisphere, TestType) %>% 
+        cohens_d(Beta ~ Category,
+                 paired = TRUE),
+      by = join_by(Hemisphere, TestType, .y., group1, group2, n1, n2)
+    ) %>% 
+      dplyr::rename(within = TestType))
+  
+  # Combine results with previous ROIs
+  beta_posthoc <- bind_rows(
+    beta_posthoc_roi %>% 
+      mutate(Area = roi) %>% 
+      relocate(Area),
+    beta_posthoc
+  )
+  
+  ######## THIRD: Plot the Betas ########
+  # Format factor levels for plotting
+  beta_data_roi <- beta_data_roi %>%
+    mutate(Category = factor(Category,
+                             levels = factor_levels$category_localiser$levels,
+                             labels = factor_levels$category_localiser$labels),
+           TestType = factor(TestType,
+                             levels = factor_levels$trialtype_test_beta$levels,
+                             labels = factor_levels$trialtype_test_beta$labels),
+           Hemisphere = factor(Hemisphere,
+                               levels = factor_levels$hemisphere$levels,
+                               labels = factor_levels$hemisphere$labels),
+           Hemi_Area = paste(Hemisphere, Area))
+
+  # Set plot parameters based on ROI type
+  roi_type <- factor_levels$rois$roi_type[factor_levels$rois$levels == roi]
+  if(roi_type == "HC"){
+    ylims <- c(-10, 20)
+    ybreaks <- seq(ylims[1], ylims[2], by = 10)
+    max_y_range <- diff(ylims)
+  }else if(roi_type == "MTL"){
+    ylims <- c(-10, 50)
+    ybreaks <- c(-10, 0, seq(20, ylims[2], by = 20))
+    max_y_range <- diff(ylims)
+  }else if(roi_type == "LocCat"){
+    ylims <- c(NA, (max(beta_data_roi$Beta)+10))
+    ybreaks <- seq(-50, ylims[2], by = 50)
+    max_y_range <- ylims[2] - min(beta_data_roi$Beta)
+  }
+
+  # Calculate plot parameters for consistent dot sizes
+  dotsize <- (max(beta_data_roi$Beta) - min(beta_data_roi$Beta))/max_y_range
+  global_binwidth <- max_y_range/30  # Divide the max range into 30 bins
+
+  # Create boxplot with overlaid dot plot
+  beta_boxplot <- ggplot(data = beta_data_roi,
+                         aes(x = TestType,
+                             y = Beta,
+                             fill = Category)) +
+    geom_boxplot(position = position_dodge(1),
+                 lwd = 1.5,
+                 outlier.colour = NA) +
+    geom_dotplot(binaxis = 'y',
+                 stackdir = 'center',
+                 position = position_dodge(1),
+                 binwidth = global_binwidth,
+                 dotsize = 0.75,
+                 alpha = 0.4) +
+    facet_wrap(~Hemi_Area) +
+    coord_cartesian(ylim = ylims) +
+    scale_y_continuous(breaks = ybreaks) +
+    labs(x = "Test Type",
+         y = "Percent Signal Change",
+         fill = "") +
+    scale_fill_manual(values = factor_levels$category$colours) +
+    geom_hline(yintercept=0, linewidth=0.5, linetype="dashed", alpha=0.5) +
+    x_axis_theme + y_axis_theme + paper_facet_theme +
+    blank_bg_theme + legend_theme
+  beta_plots[[roi]] <- beta_boxplot
+}
+
+# Store results in final variables
+anova_tests_test_testtypecat <- beta_anova
+anova_tests_detailed_test_testtypecat <- beta_anova_detailed
+beta_plots_test_testtypecat <- beta_plots
+beta_posthoc_test_testtypecat <- beta_posthoc
+
+# Process MTL ROIs separately
+beta_posthoc_test_testtypecat <- beta_posthoc_test_testtypecat %>% 
+  filter(Area %in% scene_face_selective) %>% 
+  # Apply FDR correction and determine which category shows greater activation
+  do(correct_p_vals(., "p"))
+
+####################### Arrange Plots #######################
+
+(loc_plots <- ggarrange(beta_plots_loc_cat$`Ant Hipp Head`,
+                        beta_plots_loc_cat$Sub +
+                          theme(axis.title.y = element_blank()),
+                        beta_plots_loc_cat$CA1 +
+                          theme(axis.title.y = element_blank()),
+                        beta_plots_loc_cat$CA23DG,
+                        beta_plots_loc_cat$`Hipp Tail` +
+                          theme(axis.title.y = element_blank()),
+                        beta_plots_loc_cat$alERC +
+                          theme(axis.title.y = element_blank()),
+                        beta_plots_loc_cat$pmERC,
+                        beta_plots_loc_cat$PRC +
+                          theme(axis.title.y = element_blank()),
+                        beta_plots_loc_cat$PHC +
+                          theme(axis.title.y = element_blank()), 
+                       nrow = 3, ncol = 3, 
+                       common.legend = TRUE, 
+                       legend = "bottom"))
+
+(aim_study_plots <- ggarrange(beta_plots_study_pairtypecat$`Ant Hipp Head`,
+                             beta_plots_study_pairtypecat$alERC +
+                               theme(axis.title.y = element_blank()),
+                             beta_plots_study_pairtypecat$pmERC,
+                             beta_plots_study_pairtypecat$PHC +
+                               theme(axis.title.y = element_blank()), 
+                             nrow = 2, ncol = 2, 
+                             common.legend = TRUE, 
+                             legend = "bottom"))
+
+(aim_test_plots <- ggarrange(beta_plots_test_testtypecat$`Ant Hipp Head`,
+                             beta_plots_test_testtypecat$alERC +
+                               theme(axis.title.y = element_blank()),
+                             beta_plots_test_testtypecat$pmERC,
+                             beta_plots_test_testtypecat$PHC +
+                               theme(axis.title.y = element_blank()), 
+                             nrow = 2, ncol = 2, 
+                             common.legend = TRUE, 
+                             legend = "bottom"))
+                             
