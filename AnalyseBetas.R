@@ -82,8 +82,8 @@ for(roi in unique(locbetas_data$Area)){
   # Summary results combined into single dataframe
   beta_anova <- rbind(beta_anova, 
                       cbind(data.frame(Area = roi, 
-                                     Event = "Localiser"), 
-                           beta_anova_df))
+                                       Event = "Localiser"), 
+                            beta_anova_df))
 }
 
 # Filter to keep MTL ROIs and correct ANOVA results for multiple comparisons
@@ -110,18 +110,18 @@ for(roi in unique(locbetas_data$Area)){
   
   # Check for hemisphere interactions
   if(any(beta_anova_roi %>% 
-    # If there's a significant interaction between Category and Hemisphere,
-    # keep hemispheres separate for analysis
          filter(grepl("Category:Hemisphere", Effect)) %>% 
          pull(p_fdrcorrected) 
          <= 0.05)){
+    # If there's a significant interaction between Category and Hemisphere,
+    # keep hemispheres separate for analysis
     beta_data_roi <- beta_data_roi
     hemi_interac <- TRUE
   }else if(all(beta_anova_roi %>% 
-    # If no significant hemisphere interaction, collapse across hemispheres
                filter(grepl("Category:Hemisphere", Effect)) %>% 
                pull(p_fdrcorrected) 
                > 0.05)){
+    # If no significant hemisphere interaction, collapse across hemispheres
     beta_data_roi <- as.data.frame(
       beta_data_roi %>% 
         group_by(Participant, ExperimentPhase, 
@@ -220,9 +220,9 @@ for(roi in unique(locbetas_data$Area)){
   
   # Create boxplot with overlaid dot plot
   beta_boxplot <- ggplot(data = beta_data_roi, 
-                       aes(x = Category, 
-                           y = Beta, 
-                           fill = Category)) +
+                         aes(x = Category, 
+                             y = Beta, 
+                             fill = Category)) +
     geom_boxplot(position = position_dodge(1),
                  lwd = 1.5,
                  outlier.colour = NA) +
@@ -334,7 +334,7 @@ for(roi in unique(studyABbetas_data$Area)){
                                        Event = "StudyAB"), 
                             beta_anova_df))
 }
-  
+
 # Filter to keep MTL ROIs and correct ANOVA results for multiple comparisons
 beta_anova_mtl <- beta_anova %>% 
   filter(Area %in% mtl_rois,
@@ -359,18 +359,18 @@ for(roi in unique(studyABbetas_data$Area)){
   
   # Check for hemisphere interactions
   if(any(beta_anova_roi %>% 
-         # If there's a significant interaction between Category and Hemisphere,
-         # keep hemispheres separate for analysis
          filter(grepl("Category:Hemisphere", Effect)) %>% 
          pull(p_fdrcorrected) 
          <= 0.05)){
+    # If there's a significant interaction between Category and Hemisphere,
+    # keep hemispheres separate for analysis
     beta_data_roi <- beta_data_roi
     hemi_interac <- TRUE
   }else if(all(beta_anova_roi %>% 
-               # If no significant hemisphere interaction, collapse across hemispheres
                filter(grepl("Category:Hemisphere", Effect)) %>% 
                pull(p_fdrcorrected) 
                > 0.05)){
+    # If no significant hemisphere interaction, collapse across hemispheres
     beta_data_roi <- as.data.frame(
       beta_data_roi %>% 
         group_by(Participant, ExperimentPhase, 
@@ -452,6 +452,7 @@ scene_face_selective <- intersect(scene_face_selective_loc,
                                   scene_face_selective_aim)
 
 ####################### STEP 2: Analyse AIM study phase #######################
+# Filter study phase data to include only remembered trials
 studybetas_data <- aimbetas_data %>% 
   filter(ExperimentPhase == "study",
          Memory == "Remembered")
@@ -460,7 +461,8 @@ studybetas_data <- aimbetas_data %>%
 # Initialize empty vectors to store ANOVA results
 beta_anova <- c()
 beta_anova_detailed <- c()
-# Loop through each ROI in the dataset
+
+# Loop through ROIs that showed category selectivity in both localizer and AIM task
 for(roi in scene_face_selective){
   # Filter data for current ROI
   beta_roi_data <- studybetas_data %>% 
@@ -490,7 +492,7 @@ for(roi in scene_face_selective){
                             beta_anova_df))
 }
 
-# Filter to keep MTL ROIs and correct ANOVA results for multiple comparisons
+# Process ANOVA results for MTL ROIs
 beta_anova_mtl <- beta_anova %>% 
   filter(Area %in% scene_face_selective,
          Effect != "(Intercept)")
@@ -500,12 +502,11 @@ beta_anova_mtl <- beta_anova_mtl %>%
   )
 
 ######## SECOND run Posthocs: ########
-
 # Initialize empty lists/vectors for storing results
 beta_plots <- list()
 beta_posthoc <- c()
 
-# Loop through each ROI
+# Loop through category-selective ROIs
 for(roi in scene_face_selective){
   # Filter data for current ROI
   beta_data_roi <- studybetas_data %>%
@@ -515,11 +516,11 @@ for(roi in scene_face_selective){
   
   # Check for hemisphere interactions
   if(any(beta_anova_roi %>% 
-         # If there's a significant interaction between Category and Hemisphere,
-         # keep hemispheres separate for analysis
          filter(grepl("Category:PairType:Hemisphere", Effect)) %>% 
          pull(p_fdrcorrected) 
          <= 0.05)){
+    # If there's a significant interaction between Category and Hemisphere,
+    # keep hemispheres separate for analysis
     beta_data_roi <- beta_data_roi
     hemi_interac <- TRUE
   }else if(all(beta_anova_roi %>% 
@@ -555,19 +556,19 @@ for(roi in scene_face_selective){
     ) %>% 
       dplyr::rename(within = Category),
     full_join(
-    # Paired t-tests between categories
-    beta_data_roi %>% 
-      group_by(Hemisphere, PairType) %>% 
-      t_test(Beta ~ Category,
-             paired = TRUE),
-    # Effect size calculations
-    beta_data_roi %>% 
-      group_by(Hemisphere, PairType) %>% 
-      cohens_d(Beta ~ Category,
+      # Paired t-tests between categories
+      beta_data_roi %>% 
+        group_by(Hemisphere, PairType) %>% 
+        t_test(Beta ~ Category,
                paired = TRUE),
-    by = join_by(Hemisphere, PairType, .y., group1, group2, n1, n2)
-  ) %>% 
-    dplyr::rename(within = PairType))
+      # Effect size calculations
+      beta_data_roi %>% 
+        group_by(Hemisphere, PairType) %>% 
+        cohens_d(Beta ~ PairType,
+                 paired = TRUE),
+      by = join_by(Hemisphere, PairType, .y., group1, group2, n1, n2)
+    ) %>% 
+      dplyr::rename(within = PairType))
   
   # Combine results with previous ROIs
   beta_posthoc <- bind_rows(
@@ -578,7 +579,7 @@ for(roi in scene_face_selective){
   )
   
   ######## THIRD: Plot the Betas ########
-  # Format factor levels for plotting
+  # Format factor levels for plotting with appropriate labels
   beta_data_roi <- beta_data_roi %>%
     mutate(Category = factor(Category,
                              levels = factor_levels$category_localiser$levels,
@@ -590,8 +591,8 @@ for(roi in scene_face_selective){
                                levels = factor_levels$hemisphere$levels,
                                labels = factor_levels$hemisphere$labels),
            Hemi_Area = paste(Hemisphere, Area))
-
-  # Set plot parameters based on ROI type
+  
+  # Set y-axis limits and breaks based on ROI type
   roi_type <- factor_levels$rois$roi_type[factor_levels$rois$levels == roi]
   if(roi_type == "HC"){
     ylims <- c(-10, 20)
@@ -606,12 +607,12 @@ for(roi in scene_face_selective){
     ybreaks <- seq(-50, ylims[2], by = 50)
     max_y_range <- ylims[2] - min(beta_data_roi$Beta)
   }
-
+  
   # Calculate plot parameters for consistent dot sizes
   dotsize <- (max(beta_data_roi$Beta) - min(beta_data_roi$Beta))/max_y_range
   global_binwidth <- max_y_range/30  # Divide the max range into 30 bins
-
-  # Create boxplot with overlaid dot plot
+  
+  # Create visualization combining boxplots and individual data points
   beta_boxplot <- ggplot(data = beta_data_roi,
                          aes(x = PairType,
                              y = Beta,
@@ -650,8 +651,8 @@ beta_posthoc_study_pairtypecat <- beta_posthoc_study_pairtypecat %>%
   # Apply FDR correction and determine which category shows greater activation
   do(correct_p_vals(., "p"))
 
-
 ####################### STEP 3: Analyse AIM test phase #######################
+# Filter test phase data to include only correct trials
 testbetas_data <- aimbetas_data %>% 
   filter(ExperimentPhase == "test",
          Memory == "Correct")
@@ -790,7 +791,7 @@ for(roi in scene_face_selective){
                                levels = factor_levels$hemisphere$levels,
                                labels = factor_levels$hemisphere$labels),
            Hemi_Area = paste(Hemisphere, Area))
-
+  
   # Set plot parameters based on ROI type
   roi_type <- factor_levels$rois$roi_type[factor_levels$rois$levels == roi]
   if(roi_type == "HC"){
@@ -806,11 +807,11 @@ for(roi in scene_face_selective){
     ybreaks <- seq(-50, ylims[2], by = 50)
     max_y_range <- ylims[2] - min(beta_data_roi$Beta)
   }
-
+  
   # Calculate plot parameters for consistent dot sizes
   dotsize <- (max(beta_data_roi$Beta) - min(beta_data_roi$Beta))/max_y_range
   global_binwidth <- max_y_range/30  # Divide the max range into 30 bins
-
+  
   # Create boxplot with overlaid dot plot
   beta_boxplot <- ggplot(data = beta_data_roi,
                          aes(x = TestType,
@@ -851,7 +852,7 @@ beta_posthoc_test_testtypecat <- beta_posthoc_test_testtypecat %>%
   do(correct_p_vals(., "p"))
 
 ####################### Arrange Plots #######################
-
+# Create combined figure for localizer results
 (loc_plots <- ggarrange(beta_plots_loc_cat$`Ant Hipp Head`,
                         beta_plots_loc_cat$Sub +
                           theme(axis.title.y = element_blank()),
@@ -867,20 +868,22 @@ beta_posthoc_test_testtypecat <- beta_posthoc_test_testtypecat %>%
                           theme(axis.title.y = element_blank()),
                         beta_plots_loc_cat$PHC +
                           theme(axis.title.y = element_blank()), 
-                       nrow = 3, ncol = 3, 
-                       common.legend = TRUE, 
-                       legend = "bottom"))
+                        nrow = 3, ncol = 3, 
+                        common.legend = TRUE, 
+                        legend = "bottom"))
 
+# Create combined figure for study phase results
 (aim_study_plots <- ggarrange(beta_plots_study_pairtypecat$`Ant Hipp Head`,
-                             beta_plots_study_pairtypecat$alERC +
-                               theme(axis.title.y = element_blank()),
-                             beta_plots_study_pairtypecat$pmERC,
-                             beta_plots_study_pairtypecat$PHC +
-                               theme(axis.title.y = element_blank()), 
-                             nrow = 2, ncol = 2, 
-                             common.legend = TRUE, 
-                             legend = "bottom"))
+                              beta_plots_study_pairtypecat$alERC +
+                                theme(axis.title.y = element_blank()),
+                              beta_plots_study_pairtypecat$pmERC,
+                              beta_plots_study_pairtypecat$PHC +
+                                theme(axis.title.y = element_blank()), 
+                              nrow = 2, ncol = 2, 
+                              common.legend = TRUE, 
+                              legend = "bottom"))
 
+# Create combined figure for test phase results
 (aim_test_plots <- ggarrange(beta_plots_test_testtypecat$`Ant Hipp Head`,
                              beta_plots_test_testtypecat$alERC +
                                theme(axis.title.y = element_blank()),
@@ -890,4 +893,4 @@ beta_posthoc_test_testtypecat <- beta_posthoc_test_testtypecat %>%
                              nrow = 2, ncol = 2, 
                              common.legend = TRUE, 
                              legend = "bottom"))
-                             
+
