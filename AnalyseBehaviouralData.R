@@ -15,7 +15,7 @@ for(part in aim_participants){
   # Add participant ID column
   part_data$Participant <- part
   # Combine with existing data
-  behavioural_data <- rbind(behavioural_data, part_data)
+  behavioural_data <- bind_rows(behavioural_data, part_data)
 }
 
 # Reorder columns to put Participant ID first
@@ -183,7 +183,7 @@ for(part in aim_participants){
   # Add participant ID column
   part_data$Participant <- part
   # Combine with existing data
-  et_data <- rbind(et_data, part_data)
+  et_data <- bind_rows(et_data, part_data)
 }
 
 # Reorder columns to put Participant ID first
@@ -236,7 +236,7 @@ fixnum_categoryitemtype_data <- fixnum_data %>%
   group_by(Participant, category, ia_item_type) %>% 
   summarise(mean_num_fix = mean(num_fix))
 
-fixnum_categoryitemtype_posthoc <- rbind(
+fixnum_categoryitemtype_posthoc <- bind_rows(
   # First analysis: Compare categories within each item type
   full_join(
     # Conduct paired t-tests comparing categories for each item type
@@ -252,7 +252,7 @@ fixnum_categoryitemtype_posthoc <- rbind(
     # Join t-test results with effect sizes
     by = join_by(.y., ia_item_type, group1, group2, n1, n2)
   ) %>% 
-    # Rename ia_item_type column to 'within' for rbind
+    # Rename ia_item_type column to 'within' for bind_rows
     rename(within = ia_item_type),
   # Second analysis: Compare item types within each category
   full_join(
@@ -269,7 +269,7 @@ fixnum_categoryitemtype_posthoc <- rbind(
     # Join t-test results with effect sizes
     by = join_by(.y., category, group1, group2, n1, n2)
   ) %>% 
-    # Rename category column to 'within' for consistency rbind
+    # Rename category column to 'within' for bind_rows
     dplyr::rename(within = category)
 ) %>% 
   # Need this for correct_p_vals to work
@@ -286,7 +286,7 @@ fixnum_trialtypeitemtype_data <- fixnum_data %>%
   summarise(mean_num_fix = mean(num_fix))
 
 # Perform post-hoc tests for the trial type x item type interaction
-fixnum_trialtypeitemtype_posthoc <- rbind(
+fixnum_trialtypeitemtype_posthoc <- bind_rows(
   # First analysis: Compare trial types within each item type
   full_join(
     # Conduct paired t-tests comparing trial types for each item type
@@ -302,7 +302,7 @@ fixnum_trialtypeitemtype_posthoc <- rbind(
     # Join t-test results with effect sizes
     by = join_by(.y., ia_item_type, group1, group2, n1, n2)
   ) %>% 
-    # Rename ia_item_type column to 'within' for rbind
+    # Rename ia_item_type column to 'within' for bind_rows
     rename(within = ia_item_type),
   # Second analysis: Compare item types within each trial type
   full_join(
@@ -319,7 +319,7 @@ fixnum_trialtypeitemtype_posthoc <- rbind(
     # Join t-test results with effect sizes
     by = join_by(.y., trialtype, group1, group2, n1, n2)
   ) %>% 
-    # Rename trialtype column to 'within' for rbind
+    # Rename trialtype column to 'within' for bind_rows
     dplyr::rename(within = trialtype)
 ) %>% 
   # Need this for correct_p_vals to work
