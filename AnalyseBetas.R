@@ -596,11 +596,11 @@ for(roi in scene_face_selective){
   # Set y-axis limits and breaks based on ROI type
   roi_type <- factor_levels$rois$roi_type[factor_levels$rois$levels == roi]
   if(roi_type == "HC"){
-    ylims <- c(-10, 20)
+    ylims <- c(-15, 30)
     ybreaks <- seq(ylims[1], ylims[2], by = 10)
     max_y_range <- diff(ylims)
   }else if(roi_type == "MTL"){
-    ylims <- c(-10, 50)
+    ylims <- c(-10, 90)
     ybreaks <- c(-10, 0, seq(20, ylims[2], by = 20))
     max_y_range <- diff(ylims)
   }else if(roi_type == "LocCat"){
@@ -657,6 +657,20 @@ beta_posthoc_study_pairtypecat <- beta_posthoc_study_pairtypecat %>%
 testbetas_data <- aimbetas_data %>% 
   filter(ExperimentPhase == "test",
          TestType == "indir")
+
+# Exclude participants who didn't have any incorrect trials
+participants_to_exclude <- testbetas_data %>%
+  mutate(Participant = factor(Participant),
+         Category = factor(Category),
+         Memory = factor(Memory)) %>% 
+  group_by(Participant, Category, Memory, .drop = FALSE) %>% 
+  summarise(len = length(Memory)) %>% 
+  filter(len == 0) %>% 
+  pull(Participant)
+
+# Exclude the participants' data
+testbetas_data <- testbetas_data %>% 
+  filter(!(Participant %in% participants_to_exclude))
 
 ######## FIRST: Run ANOVA ########
 # Initialize empty vectors to store ANOVA results
@@ -796,12 +810,12 @@ for(roi in scene_face_selective){
   # Set plot parameters based on ROI type
   roi_type <- factor_levels$rois$roi_type[factor_levels$rois$levels == roi]
   if(roi_type == "HC"){
-    ylims <- c(-10, 20)
-    ybreaks <- seq(ylims[1], ylims[2], by = 10)
+    ylims <- c(-30, 30)
+    ybreaks <- seq(ylims[1], ylims[2], by = 15)
     max_y_range <- diff(ylims)
   }else if(roi_type == "MTL"){
-    ylims <- c(-10, 50)
-    ybreaks <- c(-10, 0, seq(20, ylims[2], by = 20))
+    ylims <- c(-25, 60)
+    ybreaks <- seq(ylims[1], ylims[2], by = 15)
     max_y_range <- diff(ylims)
   }else if(roi_type == "LocCat"){
     ylims <- c(NA, (max(beta_data_roi$Beta)+10))
