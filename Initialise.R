@@ -29,9 +29,8 @@ scripts_path <- "~/GitDir/CodeWithPapers/CategorySpecificAssociativeInference"
 # Change base_path to the folder that contains the downloaded data from OpenNeuro
 #All other paths are defined relative to base_path
 base_path <- "~/Desktop/AssociativeInference/"
-data_path <- paste0(base_path, "Defaced/")
+data_path <- paste0(base_path, "CategorySpecificAssociativeInference/")
 derivatives_path <- paste0(data_path, "derivatives/")
-deconvolve_path <- paste0(derivatives_path, "DeconvolveOutput/")
 
 ################## Participant Management ##################
 # Read and filter participant information based on task completion
@@ -53,9 +52,9 @@ factor_levels <- list(category = list(levels = c("scene", "face"),
                                       colours = c("#66CC00", "#0099FF")),
                       pairtype_study = list(levels = c("AB", "BC"),
                                              labels=c("AB", "BC")),
-                      trialtype_test = list(levels = c("AB", "BC", "AC"),
+                      pairtype_test = list(levels = c("AB", "BC", "AC"),
                                             labels=c("AB", "BC", "AC")),
-                      trialtype_test_beta = list(levels = c("dir", "indir"),
+                      trialtype_test = list(levels = c("dir", "indir"),
                                             labels=c("Direct", "Indirect")),
                       category_localiser = list(levels = c("scene", "face", "obj"),
                                                 labels = c("Scene", "Face", "Object"),
@@ -69,7 +68,9 @@ factor_levels <- list(category = list(levels = c("scene", "face"),
                                   roi_type = c(rep_len("HC", 5),
                                                rep_len("MTL", 4))),
                       hemisphere = list(levels = c("Left", "Right", "Collapsed"),
-                                        labels = c("Left", "Right", "Bilateral")))
+                                        labels = c("Left", "Right", "Bilateral")),
+                      memory_test = list(levels = c("Correct", "Incorrect"),
+                                        labels = c("Correct", "Incorrect")))
 
 ################## Utility Functions ##################
 # Function to correct p-values using different methods

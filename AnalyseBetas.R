@@ -9,6 +9,7 @@ mtl_rois <- factor_levels$rois$levels
 ############ Localiser ############
 # Initialize empty dataframe to store all participants' data
 locbetas_data <- c()
+deconvolve_path <- paste0(derivatives_path, "LocalDeconvolveOutput/")
 
 # Loop through all participants and read their task event files
 for(part in loc_participants){
@@ -31,6 +32,7 @@ all(sort(unique(locbetas_data$Participant)) == sort(loc_participants))
 ############ AIM Task ############
 # Initialize empty dataframe to store all participants' data
 aimbetas_data <- c()
+deconvolve_path <- paste0(derivatives_path, "AIMDeconvolveOutput/")
 
 # Loop through all participants and read their task event files
 for(part in aim_participants){
@@ -236,7 +238,7 @@ for(roi in unique(locbetas_data$Area)){
     coord_cartesian(ylim = ylims) +
     scale_y_continuous(breaks = ybreaks) +
     labs(x = "Category",
-         y = "Percent Signal Change",
+         y = "Beta Estimates",
          fill = "") +
     scale_fill_manual(values = factor_levels$category_localiser$colours) +
     geom_hline(yintercept=0, linewidth=0.5, linetype="dashed", alpha=0.5) + 
@@ -346,7 +348,6 @@ beta_anova_mtl <- beta_anova_mtl %>%
 
 ######## SECOND run Posthocs: ########
 # Initialize empty lists/vectors for storing results
-beta_plots <- list()
 beta_posthoc <- c()
 
 # Loop through each ROI
@@ -564,7 +565,7 @@ for(roi in scene_face_selective){
       # Effect size calculations
       beta_data_roi %>% 
         group_by(Hemisphere, PairType) %>% 
-        cohens_d(Beta ~ PairType,
+        cohens_d(Beta ~ Category,
                  paired = TRUE),
       by = join_by(Hemisphere, PairType, .y., group1, group2, n1, n2)
     ) %>% 
@@ -585,8 +586,8 @@ for(roi in scene_face_selective){
                              levels = factor_levels$category_localiser$levels,
                              labels = factor_levels$category_localiser$labels),
            PairType = factor(PairType,
-                             levels = factor_levels$trialtype_study$levels,
-                             labels = factor_levels$trialtype_study$labels),
+                             levels = factor_levels$pairtype_study$levels,
+                             labels = factor_levels$pairtype_study$labels),
            Hemisphere = factor(Hemisphere,
                                levels = factor_levels$hemisphere$levels,
                                labels = factor_levels$hemisphere$labels),
@@ -630,7 +631,7 @@ for(roi in scene_face_selective){
     coord_cartesian(ylim = ylims) +
     scale_y_continuous(breaks = ybreaks) +
     labs(x = "Pair Type",
-         y = "Percent Signal Change",
+         y = "Beta Estimates",
          fill = "") +
     scale_fill_manual(values = factor_levels$category$colours) +
     geom_hline(yintercept=0, linewidth=0.5, linetype="dashed", alpha=0.5) +
@@ -655,7 +656,7 @@ beta_posthoc_study_pairtypecat <- beta_posthoc_study_pairtypecat %>%
 # Filter test phase data to include only correct trials
 testbetas_data <- aimbetas_data %>% 
   filter(ExperimentPhase == "test",
-         Memory == "Correct")
+         TestType == "indir")
 
 ######## FIRST: Run ANOVA ########
 # Initialize empty vectors to store ANOVA results
@@ -673,7 +674,7 @@ for(roi in scene_face_selective){
     data = beta_roi_data, 
     wid = Participant,              # Subject identifier
     within = c(Category, 
-               TestType,
+               Memory,
                Hemisphere), # Within-subject factors
     dv = Beta,                      # Dependent variable
     detailed = TRUE                 # Request detailed output
@@ -716,7 +717,7 @@ for(roi in scene_face_selective){
   
   # Check for hemisphere interactions
   if(any(beta_anova_roi %>% 
-         filter(grepl("Category:TestType:Hemisphere", Effect)) %>% 
+         filter(grepl("Category:Memory:Hemisphere", Effect)) %>% 
          pull(p_fdrcorrected) 
          <= 0.05)){
     # If there's a significant interaction between Category and Hemisphere,
@@ -724,14 +725,14 @@ for(roi in scene_face_selective){
     beta_data_roi <- beta_data_roi
     hemi_interac <- TRUE
   }else if(all(beta_anova_roi %>% 
-               filter(grepl("Category:TestType:Hemisphere", Effect)) %>% 
+               filter(grepl("Category:Memory:Hemisphere", Effect)) %>% 
                pull(p_fdrcorrected) 
                > 0.05)){
     # If no significant hemisphere interaction, collapse across hemispheres
     beta_data_roi <- as.data.frame(
       beta_data_roi %>% 
         group_by(Participant, ExperimentPhase, 
-                 Category, TestType, Area) %>% 
+                 Category, Memory, Area) %>% 
         summarise(Beta = mean(Beta)) %>% 
         ungroup() %>% 
         mutate(Hemisphere = "Collapsed")
@@ -745,12 +746,12 @@ for(roi in scene_face_selective){
       # Paired t-tests between categories
       beta_data_roi %>% 
         group_by(Hemisphere, Category) %>% 
-        t_test(Beta ~ TestType,
+        t_test(Beta ~ Memory,
                paired = TRUE),
       # Effect size calculations
       beta_data_roi %>% 
         group_by(Hemisphere, Category) %>% 
-        cohens_d(Beta ~ TestType,
+        cohens_d(Beta ~ Memory,
                  paired = TRUE),
       by = join_by(Hemisphere, Category, .y., group1, group2, n1, n2)
     ) %>% 
@@ -758,17 +759,17 @@ for(roi in scene_face_selective){
     full_join(
       # Paired t-tests between categories
       beta_data_roi %>% 
-        group_by(Hemisphere, TestType) %>% 
+        group_by(Hemisphere, Memory) %>% 
         t_test(Beta ~ Category,
                paired = TRUE),
       # Effect size calculations
       beta_data_roi %>% 
-        group_by(Hemisphere, TestType) %>% 
+        group_by(Hemisphere, Memory) %>% 
         cohens_d(Beta ~ Category,
                  paired = TRUE),
-      by = join_by(Hemisphere, TestType, .y., group1, group2, n1, n2)
+      by = join_by(Hemisphere, Memory, .y., group1, group2, n1, n2)
     ) %>% 
-      dplyr::rename(within = TestType))
+      dplyr::rename(within = Memory))
   
   # Combine results with previous ROIs
   beta_posthoc <- bind_rows(
@@ -784,9 +785,9 @@ for(roi in scene_face_selective){
     mutate(Category = factor(Category,
                              levels = factor_levels$category_localiser$levels,
                              labels = factor_levels$category_localiser$labels),
-           TestType = factor(TestType,
-                             levels = factor_levels$trialtype_test_beta$levels,
-                             labels = factor_levels$trialtype_test_beta$labels),
+           Memory = factor(Memory,
+                             levels = factor_levels$memory_test$levels,
+                             labels = factor_levels$memory_test$labels),
            Hemisphere = factor(Hemisphere,
                                levels = factor_levels$hemisphere$levels,
                                labels = factor_levels$hemisphere$labels),
@@ -814,7 +815,7 @@ for(roi in scene_face_selective){
   
   # Create boxplot with overlaid dot plot
   beta_boxplot <- ggplot(data = beta_data_roi,
-                         aes(x = TestType,
+                         aes(x = Memory,
                              y = Beta,
                              fill = Category)) +
     geom_boxplot(position = position_dodge(1),
@@ -830,7 +831,7 @@ for(roi in scene_face_selective){
     coord_cartesian(ylim = ylims) +
     scale_y_continuous(breaks = ybreaks) +
     labs(x = "Test Type",
-         y = "Percent Signal Change",
+         y = "Beta Estimates",
          fill = "") +
     scale_fill_manual(values = factor_levels$category$colours) +
     geom_hline(yintercept=0, linewidth=0.5, linetype="dashed", alpha=0.5) +
@@ -840,13 +841,13 @@ for(roi in scene_face_selective){
 }
 
 # Store results in final variables
-anova_tests_test_testtypecat <- beta_anova
-anova_tests_detailed_test_testtypecat <- beta_anova_detailed
-beta_plots_test_testtypecat <- beta_plots
-beta_posthoc_test_testtypecat <- beta_posthoc
+anova_tests_test_memorycat <- beta_anova
+anova_tests_detailed_test_memorycat <- beta_anova_detailed
+beta_plots_test_memorycat <- beta_plots
+beta_posthoc_test_memorycat <- beta_posthoc
 
 # Process MTL ROIs separately
-beta_posthoc_test_testtypecat <- beta_posthoc_test_testtypecat %>% 
+beta_posthoc_test_memorycat <- beta_posthoc_test_memorycat %>% 
   filter(Area %in% scene_face_selective) %>% 
   # Apply FDR correction and determine which category shows greater activation
   do(correct_p_vals(., "p"))
@@ -884,11 +885,11 @@ beta_posthoc_test_testtypecat <- beta_posthoc_test_testtypecat %>%
                               legend = "bottom"))
 
 # Create combined figure for test phase results
-(aim_test_plots <- ggarrange(beta_plots_test_testtypecat$`Ant Hipp Head`,
-                             beta_plots_test_testtypecat$alERC +
+(aim_test_plots <- ggarrange(beta_plots_test_memorycat$`Ant Hipp Head`,
+                             beta_plots_test_memorycat$alERC +
                                theme(axis.title.y = element_blank()),
-                             beta_plots_test_testtypecat$pmERC,
-                             beta_plots_test_testtypecat$PHC +
+                             beta_plots_test_memorycat$pmERC,
+                             beta_plots_test_memorycat$PHC +
                                theme(axis.title.y = element_blank()), 
                              nrow = 2, ncol = 2, 
                              common.legend = TRUE, 
