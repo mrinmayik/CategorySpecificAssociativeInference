@@ -34,7 +34,7 @@ test_data <- behavioural_data %>%
   mutate(category = factor(category,
                            levels = factor_levels$category$labels),
          trialtype = factor(trialtype,
-                            levels = factor_levels$trialtype_test$levels))
+                            levels = factor_levels$pairtype_test$levels))
 
 
 # Calculate accuracy metrics grouped by participant, trial type, and category
