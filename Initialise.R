@@ -22,13 +22,13 @@ library(ez)
 library(rstatix)
 library(psychReport)
 
-################## Path Setup ##################
+################## Path Setup [UPDATE THESE FOR YOUR LOCAL MACHINE] ##################
 # Define base paths for scripts and data
-scripts_path <- "~/GitDir/CodeWithPapers/CategorySpecificAssociativeInference"
+scripts_path <- "~/CategorySpecificAssociativeInference"
 
 # Change base_path to the folder that contains the downloaded data from OpenNeuro
-#All other paths are defined relative to base_path
-base_path <- "~/Desktop/AssociativeInference/"
+# All other paths are defined relative to base_path
+base_path <- "~/Downloads/"
 data_path <- paste0(base_path, "CategorySpecificAssociativeInference/")
 derivatives_path <- paste0(data_path, "derivatives/")
 
