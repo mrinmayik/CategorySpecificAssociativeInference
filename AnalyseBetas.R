@@ -248,7 +248,7 @@ for(roi in unique(locbetas_data$Area)){
 }
 
 # Store results in final variables
-anova_tests_loc_cat <- beta_anova
+anova_tests_loc_cat <- beta_anova_mtl
 anova_tests_detailed_loc_cat <- beta_anova_detailed
 beta_plots_loc_cat <- beta_plots
 beta_posthoc_loc_cat <- beta_posthoc
@@ -641,7 +641,7 @@ for(roi in scene_face_selective){
 }
 
 # Store results in final variables
-anova_tests_study_pairtypecat <- beta_anova
+anova_tests_study_pairtypecat <- beta_anova_mtl
 anova_tests_detailed_study_pairtypecat <- beta_anova_detailed
 beta_plots_study_pairtypecat <- beta_plots
 beta_posthoc_study_pairtypecat <- beta_posthoc
@@ -855,7 +855,7 @@ for(roi in scene_face_selective){
 }
 
 # Store results in final variables
-anova_tests_test_memorycat <- beta_anova
+anova_tests_test_memorycat <- beta_anova_mtl
 anova_tests_detailed_test_memorycat <- beta_anova_detailed
 beta_plots_test_memorycat <- beta_plots
 beta_posthoc_test_memorycat <- beta_posthoc
@@ -866,7 +866,21 @@ beta_posthoc_test_memorycat <- beta_posthoc_test_memorycat %>%
   # Apply FDR correction and determine which category shows greater activation
   do(correct_p_vals(., "p"))
 
-####################### Arrange Plots #######################
+####################### Arrange Plots and View Results #######################
+############ Localiser ############
+
+# View ANOVAs from the localiser results
+View(anova_tests_loc_cat %>%
+       mutate(`F` = round(`F`, 3),
+              p = round(p, 3),
+              p_fdrcorrected = round(p_fdrcorrected, 3),
+              pes = round(pes, 3)))
+# View posthoc test from the localiser results
+View(beta_posthoc_loc_cat_mtl %>%
+       mutate(statistic = round(statistic, 3),
+              p = round(p, 3),
+              p_fdrcorrected = round(p_fdrcorrected, 3),
+              effsize = round(effsize, 3)))
 # Create combined figure for localizer results
 (loc_plots <- ggarrange(beta_plots_loc_cat$`Ant Hipp Head`,
                         beta_plots_loc_cat$Sub +
@@ -887,6 +901,20 @@ beta_posthoc_test_memorycat <- beta_posthoc_test_memorycat %>%
                         common.legend = TRUE, 
                         legend = "bottom"))
 
+############ AIM study phase ############
+
+# View ANOVAs from the AIM study phase results
+View(anova_tests_study_pairtypecat %>%
+       mutate(`F` = round(`F`, 3),
+              p = round(p, 3),
+              p_fdrcorrected = round(p_fdrcorrected, 3),
+              pes = round(pes, 3)))
+# View posthoc test from the AIM study phase results
+View(beta_posthoc_study_pairtypecat %>%
+       mutate(statistic = round(statistic, 3),
+              p = round(p, 3),
+              p_fdrcorrected = round(p_fdrcorrected, 3),
+              effsize = round(effsize, 3)))
 # Create combined figure for study phase results
 (aim_study_plots <- ggarrange(beta_plots_study_pairtypecat$`Ant Hipp Head`,
                               beta_plots_study_pairtypecat$alERC +
@@ -898,6 +926,20 @@ beta_posthoc_test_memorycat <- beta_posthoc_test_memorycat %>%
                               common.legend = TRUE, 
                               legend = "bottom"))
 
+############ AIM test phase ############
+
+# View ANOVAs from the AIM study phase results
+View(anova_tests_test_memorycat %>%
+       mutate(`F` = round(`F`, 3),
+              p = round(p, 3),
+              p_fdrcorrected = round(p_fdrcorrected, 3),
+              pes = round(pes, 3)))
+# View posthoc test from the AIM study phase results
+View(beta_posthoc_test_memorycat %>%
+       mutate(statistic = round(statistic, 3),
+              p = round(p, 3),
+              p_fdrcorrected = round(p_fdrcorrected, 3),
+              effsize = round(effsize, 3)))
 # Create combined figure for test phase results
 (aim_test_plots <- ggarrange(beta_plots_test_memorycat$`Ant Hipp Head`,
                              beta_plots_test_memorycat$alERC +
