@@ -18,7 +18,8 @@ deconvolve_path <- paste0(derivatives_path, "LocalDeconvolveOutput/")
 for(part in loc_participants){
   # Read TSV file containing task events for each participant
   part_data <- read.table(paste0(deconvolve_path, part, "/", part, "_task-local_betas.tsv"),
-                          header = TRUE)
+                          header = TRUE,
+                          sep = "\t")
   # Add participant ID column
   part_data$Participant <- part
   # Combine with existing data
@@ -41,7 +42,8 @@ deconvolve_path <- paste0(derivatives_path, "AIMDeconvolveOutput/")
 for(part in aim_participants){
   # Read TSV file containing task events for each participant
   part_data <- read.table(paste0(deconvolve_path, part, "/", part, "_task-aim_betas.tsv"),
-                          header = TRUE)
+                          header = TRUE,
+                          sep = "\t")
   # Add participant ID column
   part_data$Participant <- part
   # Combine with existing data

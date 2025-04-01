@@ -11,7 +11,8 @@ behavioural_data <- c()
 for(part in aim_participants){
   # Read TSV file containing task events for each participant
   part_data <- read.table(paste0(data_path, part, "/func/", part, "_task-aim_events.tsv"),
-                          header=TRUE)
+                          header=TRUE,
+                          sep = "\t")
   # Add participant ID column
   part_data$Participant <- part
   # Combine with existing data
@@ -179,7 +180,8 @@ et_data <- c()
 for(part in aim_participants){
   # Read TSV file containing eye-tracking data for each participant
   part_data <- read.table(paste0(data_path, part, "/func/", part, "_task-aim_eyetracking.tsv"),
-                          header=TRUE)
+                          header=TRUE,
+                          sep = "\t")
   # Add participant ID column
   part_data$Participant <- part
   # Combine with existing data
