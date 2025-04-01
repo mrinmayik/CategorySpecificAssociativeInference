@@ -27,7 +27,7 @@ behavioural_data <- relocate(behavioural_data,
 all(sort(unique(behavioural_data$Participant)) == sort(aim_participants))
 
 
-################## Analyse test phase accuracy data ##################
+################## Analyse test phase trials without a response ##################
 
 # Filter data to include only test phase trials
 test_data <- behavioural_data %>% 
@@ -37,6 +37,58 @@ test_data <- behavioural_data %>%
          trialtype = factor(trialtype,
                             levels = factor_levels$pairtype_test$levels))
 
+no_resp_data <- test_data %>% 
+  mutate(Participant = factor(Participant)) %>% 
+  filter(test_RT == 0) %>% 
+  group_by(Participant, .drop = F) %>% 
+  summarise(num_no_resp = length(Participant)) 
+
+no_resp_summary <- no_resp_data %>% 
+  ungroup() %>% 
+  do(summarise_data(., "num_no_resp"))
+
+noresp_trialtypecategory_data <- test_data %>% 
+  mutate(Participant = factor(Participant)) %>% 
+  filter(test_RT == 0) %>% 
+  group_by(Participant, trialtype, category, .drop = F) %>% 
+  summarise(num_no_resp = length(Participant)) 
+
+noresp_trialtypecategory_anova <-
+  ezANOVA(data = noresp_trialtypecategory_data,
+          dv = num_no_resp,
+          within = c(trialtype, category),
+          wid = Participant,
+          detailed = TRUE)
+
+noresp_trialtype_data <- test_data %>% 
+  mutate(Participant = factor(Participant)) %>% 
+  filter(test_RT == 0) %>% 
+  group_by(Participant, trialtype, .drop = F) %>% 
+  summarise(num_no_resp = length(Participant)) 
+
+# Perform post-hoc tests for category effects within each trial type
+noresp_trialtype_main_posthoc <- full_join(
+  # Paired t-tests between categories within each trial type
+  noresp_trialtype_data %>% 
+    as.data.frame() %>% 
+    t_test(num_no_resp ~ trialtype,
+           paired = TRUE),
+  # Calculate effect sizes (Cohen's d)
+  noresp_trialtype_data %>% 
+    as.data.frame() %>% 
+    cohens_d(num_no_resp ~ trialtype,
+             paired = TRUE),
+  by = join_by(.y., group1, group2, n1, n2)
+) %>% 
+  as.data.frame()
+
+# Apply multiple comparison correction to p-values
+noresp_trialtype_main_posthoc <- 
+  correct_p_vals(noresp_trialtype_main_posthoc, 
+                 "p")
+
+
+################## Analyse test phase accuracy data ##################
 
 # Calculate accuracy metrics grouped by participant, trial type, and category
 accuracy_trialtypecategory_data <- test_data %>% 
@@ -77,7 +129,7 @@ accuracy_trialtype_main_posthoc <- full_join(
 )
 
 # Perform post-hoc tests for category effects within each trial type
-accuracy_category_interac_posthoc <- full_join(
+accuracy_trialtypecategory_interac_posthoc <- full_join(
   # Paired t-tests between categories within each trial type
   accuracy_trialtypecategory_data %>% 
     as.data.frame() %>% 
@@ -95,8 +147,8 @@ accuracy_category_interac_posthoc <- full_join(
   as.data.frame()
 
 # Apply multiple comparison correction to p-values
-accuracy_category_interac_posthoc <- 
-  correct_p_vals(accuracy_category_interac_posthoc, 
+accuracy_trialtypecategory_interac_posthoc <- 
+  correct_p_vals(accuracy_trialtypecategory_interac_posthoc, 
                  "p")
 
 ################## Analyse test phase reaction time data ##################
