@@ -24,7 +24,7 @@ library(psychReport)
 
 ################## Path Setup [UPDATE THESE FOR YOUR LOCAL MACHINE] ##################
 # Define base paths for scripts and data
-scripts_path <- "~/CategorySpecificAssociativeInference"
+scripts_path <- "~/Downloads/CategorySpecificAssociativeInference/"
 
 # Change base_path to the folder that contains the downloaded data from OpenNeuro
 # All other paths are defined relative to base_path
@@ -64,9 +64,11 @@ factor_levels <- list(category = list(levels = c("scene", "face"),
                                                 labels = c("A\n(object)", "B\n(scene/face)", 
                                                            "B\n(scene/face)", "C\n(object)")),
                       rois = list(levels = c("Ant Hipp Head", "CA1", "CA23DG", "Sub", "Hipp Tail", 
-                                             "alERC", "pmERC", "PRC", "PHC"),
+                                             "alERC", "pmERC", "PRC", "PHC",
+                                             "FFA"),
                                   roi_type = c(rep_len("HC", 5),
-                                               rep_len("MTL", 4))),
+                                               rep_len("MTL", 4),
+                                               "FFA")),
                       hemisphere = list(levels = c("Left", "Right", "Collapsed"),
                                         labels = c("Left", "Right", "Bilateral")),
                       memory_test = list(levels = c("Correct", "Incorrect"),

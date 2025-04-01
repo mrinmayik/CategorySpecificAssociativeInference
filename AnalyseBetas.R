@@ -2,7 +2,10 @@
 setwd("~/GitDir/CodeWithPapers/CategorySpecificAssociativeInference/")
 source("Initialise.R")
 
+# Make a list of ROIs available
 mtl_rois <- factor_levels$rois$levels
+# Exclude the FFA ROI
+mtl_rois <- mtl_rois[!(mtl_rois == "FFA")]
 
 ####################### Read in betas and organise them #######################
 
@@ -96,6 +99,17 @@ beta_anova_mtl <- beta_anova_mtl %>%
   group_by(Effect) %>% 
   do(correct_p_vals(., "p")
   )
+
+# Recombine with FFA results to use for assessing the 
+# Category x Hemisphere interaction in the posthoc analysis
+beta_anova_mtl <- bind_rows(
+  beta_anova_mtl,
+  beta_anova %>% 
+    filter(Area == "FFA",
+           Effect != "(Intercept)") %>% 
+    mutate(p_fdrcorrected = p) # Keep the uncorrected p for FFA
+)
+
 
 ######## SECOND run Posthocs: ########
 # Initialize empty lists/vectors for storing results
@@ -464,7 +478,7 @@ beta_anova <- c()
 beta_anova_detailed <- c()
 
 # Loop through ROIs that showed category selectivity in both localizer and AIM task
-for(roi in scene_face_selective){
+for(roi in c(scene_face_selective, "FFA")){
   # Filter data for current ROI
   beta_roi_data <- studybetas_data %>% 
     filter(Area == roi)
@@ -502,13 +516,23 @@ beta_anova_mtl <- beta_anova_mtl %>%
   do(correct_p_vals(., "p")
   )
 
+# Recombine with FFA results to use for assessing the 
+# Category x Hemisphere interaction in the posthoc analysis
+beta_anova_mtl <- bind_rows(
+  beta_anova_mtl,
+  beta_anova %>% 
+    filter(Area == "FFA",
+           Effect != "(Intercept)") %>% 
+    mutate(p_fdrcorrected = p) # Keep the uncorrected p for FFA
+)
+
 ######## SECOND run Posthocs: ########
 # Initialize empty lists/vectors for storing results
 beta_plots <- list()
 beta_posthoc <- c()
 
-# Loop through category-selective ROIs
-for(roi in scene_face_selective){
+# Loop through category-selective ROIs and the FFA
+for(roi in c(scene_face_selective, "FFA")){
   # Filter data for current ROI
   beta_data_roi <- studybetas_data %>%
     filter(Area == roi)
