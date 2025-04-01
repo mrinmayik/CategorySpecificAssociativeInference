@@ -122,7 +122,7 @@ rt_trialtype_data <- test_data %>%
             SDRT = sd(test_RT, na.rm = TRUE))
 
 # Perform post-hoc paired t-tests and calculate Cohen's d for trial type main effect
-rt_trialtype_posthoc <- full_join(
+rt_trialtype_main_posthoc <- full_join(
   # Paired t-test between trial types
   rt_trialtype_data %>% 
     as.data.frame() %>% 
@@ -141,13 +141,13 @@ rt_trialtype_posthoc <- full_join(
   as.data.frame()
 
 # Apply Bonferroni correction to p-values for multiple comparisons
-rt_trialtype_posthoc <- 
-  correct_p_vals(rt_trialtype_posthoc, 
+rt_trialtype_main_posthoc <- 
+  correct_p_vals(rt_trialtype_main_posthoc, 
                  pvalcol = "p")
 
 
 # Perform post-hoc tests for category effects within each trial type
-rt_categorytrialtype_posthoc <- full_join(
+rt_categorytrialtype_interac_posthoc <- full_join(
   # Paired t-tests between categories within each trial type
   rt_trialtypecategory_data %>% 
     as.data.frame() %>% 
@@ -166,8 +166,8 @@ rt_categorytrialtype_posthoc <- full_join(
   as.data.frame()
 
 # Apply multiple comparison correction to p-values
-rt_categorytrialtype_posthoc <- 
-  correct_p_vals(rt_categorytrialtype_posthoc, 
+rt_categorytrialtype_interac_posthoc <- 
+  correct_p_vals(rt_categorytrialtype_interac_posthoc, 
                  pvalcol = "p")
 
 ################## Analyse eye-tracking data ##################
