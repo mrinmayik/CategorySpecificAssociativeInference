@@ -29,7 +29,7 @@ all(sort(unique(behavioural_data$Participant)) == sort(aim_participants))
 
 ################## Analyse test phase trials without a response ##################
 
-# Filter data to include only test phase trials
+# Filter data to include only test phase trials and convert categorical variables to factors
 test_data <- behavioural_data %>% 
   filter(phase == "test") %>% 
   mutate(category = factor(category,
@@ -37,38 +37,44 @@ test_data <- behavioural_data %>%
          trialtype = factor(trialtype,
                             levels = factor_levels$pairtype_test$levels))
 
+# Count trials with no response (where RT = 0) for each participant
 no_resp_data <- test_data %>% 
   mutate(Participant = factor(Participant)) %>% 
-  filter(test_RT == 0) %>% 
-  group_by(Participant, .drop = F) %>% 
-  summarise(num_no_resp = length(Participant)) 
+  filter(test_RT == 0) %>%          # Select only trials with no response
+  group_by(Participant, .drop = F) %>%  # Group by participant, keeping all factor levels
+  summarise(num_no_resp = length(Participant))  # Count no-response trials
 
+# Calculate descriptive statistics for no-response trials across participants
 no_resp_summary <- no_resp_data %>% 
   ungroup() %>% 
   do(summarise_data(., "num_no_resp"))
 
+# Count no-response trials by participant, trial type, and category
 noresp_trialtypecategory_data <- test_data %>% 
   mutate(Participant = factor(Participant)) %>% 
   filter(test_RT == 0) %>% 
   group_by(Participant, trialtype, category, .drop = F) %>% 
   summarise(num_no_resp = length(Participant)) 
 
+# Perform 2x2 repeated measures ANOVA on no-response data
+# Factors: trial type and category, within-subjects design
 noresp_trialtypecategory_anova <-
   ezANOVA(data = noresp_trialtypecategory_data,
-          dv = num_no_resp,
-          within = c(trialtype, category),
-          wid = Participant,
-          detailed = TRUE)
+          dv = num_no_resp,           # Dependent variable: number of no-response trials
+          within = c(trialtype, category),  # Within-subject factors
+          wid = Participant,          # Participant identifier
+          detailed = TRUE)            # Request detailed output
 
+# Count no-response trials by participant and trial type (collapsed across categories)
+# to examine the main effect of trialtype
 noresp_trialtype_data <- test_data %>% 
   mutate(Participant = factor(Participant)) %>% 
   filter(test_RT == 0) %>% 
   group_by(Participant, trialtype, .drop = F) %>% 
   summarise(num_no_resp = length(Participant)) 
 
-# Perform post-hoc tests for category effects within each trial type
+# Perform post-hoc tests comparing trial types for no-response trials
 noresp_trialtype_main_posthoc <- full_join(
-  # Paired t-tests between categories within each trial type
   noresp_trialtype_data %>% 
     as.data.frame() %>% 
     t_test(num_no_resp ~ trialtype,
@@ -82,7 +88,7 @@ noresp_trialtype_main_posthoc <- full_join(
 ) %>% 
   as.data.frame()
 
-# Apply multiple comparison correction to p-values
+# Apply multiple comparison correction to p-values 
 noresp_trialtype_main_posthoc <- 
   correct_p_vals(noresp_trialtype_main_posthoc, 
                  "p")
