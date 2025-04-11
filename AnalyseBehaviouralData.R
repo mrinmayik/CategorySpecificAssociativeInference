@@ -40,7 +40,7 @@ test_data <- behavioural_data %>%
 # Count trials with no response (where RT = 0) for each participant
 no_resp_data <- test_data %>% 
   mutate(Participant = factor(Participant)) %>% 
-  filter(test_RT == 0) %>%          # Select only trials with no response
+  filter(is.na(accuracy)) %>%          # Select only trials with no response
   group_by(Participant, .drop = F) %>%  # Group by participant, keeping all factor levels
   summarise(num_no_resp = length(Participant))  # Count no-response trials
 
