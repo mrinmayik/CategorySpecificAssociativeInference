@@ -158,28 +158,39 @@ accuracy_trialtypecategory_interac_posthoc <-
                  "p")
 
 # Calculate adjusted AC score from the appendix
+# Filter test data to include only trials where both AB and BC were answered correctly
 dir_correct_testdata <- test_data %>% 
-  pivot_wider(id_cols = c(Participant, category, pairnum, block), 
-              names_from = trialtype,
+  pivot_wider(id_cols = c(Participant, category, pairnum, block),  # Reshape data: one row per unique trial
+              names_from = trialtype,                             # Columns for each trial type (AB, BC, AC)
               values_from = accuracy) %>% 
-  filter(AB == 1 & BC == 1)
+  filter(AB == 1 & BC == 1)                                       # Keep only trials where both AB and BC are correct
 
+# Calculate adjusted AC accuracy for each participant and category
 adjaccuracy_trialtypecategory_data <- dir_correct_testdata %>% 
   group_by(Participant, category) %>% 
-  summarise(TotalTrials = length(Participant),
-            CorrectTrials = sum(AC, na.rm = TRUE),
-            PercentAccuracy = (CorrectTrials/TotalTrials)*100) %>% 
-  select(c(Participant, category, PercentAccuracy)) %>% 
-  rename(AC = PercentAccuracy) %>% 
-  full_join(accuracy_trialtypecategory_data %>% 
-              filter(trialtype %in% c("AB", "BC")) %>% 
-              pivot_wider(id_cols = c(Participant, category), 
-                          names_from = trialtype,
-                          values_from = PercentAccuracy),
-            by = c("Participant", "category")) %>% 
-  pivot_longer(cols = c(AB, BC, AC),
-               names_to = "trialtype",
-               values_to = "PercentAccuracy") %>% 
+  summarise(
+    TotalTrials = length(Participant),                             # Total number of eligible trials
+    CorrectTrials = sum(AC, na.rm = TRUE),                        # Number of correct AC responses
+    PercentAccuracy = (CorrectTrials/TotalTrials)*100              # Percent accuracy for AC
+  ) %>% 
+  select(c(Participant, category, PercentAccuracy)) %>%            # Keep only relevant columns
+  rename(AC = PercentAccuracy) %>%                                 # Rename for clarity
+  # Join with raw AB and BC accuracy data for the same participants/categories
+  full_join(
+    accuracy_trialtypecategory_data %>% 
+      filter(trialtype %in% c("AB", "BC")) %>% 
+      pivot_wider(id_cols = c(Participant, category), 
+                  names_from = trialtype,
+                  values_from = PercentAccuracy),
+    by = c("Participant", "category")
+  ) %>% 
+  # Reshape so AB, BC, and AC accuracy are all in one column, with a new column indicating trial type
+  pivot_longer(
+    cols = c(AB, BC, AC),
+    names_to = "trialtype",
+    values_to = "PercentAccuracy"
+  ) %>% 
+  # Convert trialtype to a factor with specified levels for plotting/analysis
   mutate(trialtype = factor(trialtype,
                             levels = factor_levels$pairtype_test$levels))
 
@@ -192,23 +203,34 @@ adjaccuracy_trialtypecategory_anova <-
           wid = Participant,
           detailed = TRUE)
 
-# Calculate accuracy metrics grouped by participant and trial type
+# Calculate adjustedaccuracy metrics grouped by participant and trial type
 adjaccuracy_trialtype_data <- dir_correct_testdata %>% 
   group_by(Participant) %>% 
-  summarise(TotalTrials = length(Participant),
-            CorrectTrials = sum(AC, na.rm = TRUE),
-            PercentAccuracy = (CorrectTrials/TotalTrials)*100) %>% 
-  select(c(Participant, PercentAccuracy)) %>% 
-  rename(AC = PercentAccuracy) %>% 
-  full_join(accuracy_trialtype_data %>% 
-              filter(trialtype %in% c("AB", "BC")) %>% 
-              pivot_wider(id_cols = c(Participant), 
-                          names_from = trialtype,
-                          values_from = PercentAccuracy),
-            by = c("Participant")) %>% 
-  pivot_longer(cols = c(AB, BC, AC),
-               names_to = "trialtype",
-               values_to = "PercentAccuracy") %>% 
+  summarise(
+    TotalTrials = length(Participant),           # Total number of eligible trials for this participant
+    CorrectTrials = sum(AC, na.rm = TRUE),      # Number of correct AC responses
+    PercentAccuracy = (CorrectTrials/TotalTrials)*100  # Percent accuracy for AC
+  ) %>% 
+  select(c(Participant, PercentAccuracy)) %>%    # Keep only relevant columns
+  rename(AC = PercentAccuracy) %>%               # Rename for clarity
+  # Join with raw AB and BC accuracy data for the same participants
+  full_join(
+    accuracy_trialtype_data %>% 
+      filter(trialtype %in% c("AB", "BC")) %>% 
+      pivot_wider(
+        id_cols = c(Participant),                # One row per participant
+        names_from = trialtype,                  # Columns for AB and BC
+        values_from = PercentAccuracy
+      ),
+    by = c("Participant")
+  ) %>% 
+  # Reshape so AB, BC, and AC accuracy are all in one column, with a new column indicating trial type
+  pivot_longer(
+    cols = c(AB, BC, AC),
+    names_to = "trialtype",
+    values_to = "PercentAccuracy"
+  ) %>% 
+  # Convert trialtype to a factor with specified levels for plotting/analysis
   mutate(trialtype = factor(trialtype,
                             levels = factor_levels$pairtype_test$levels))
 
@@ -331,7 +353,7 @@ et_data <- c()
 for(part in aim_participants){
   # Read TSV file containing eye-tracking data for each participant
   part_data <- read.table(paste0(data_path, part, "/func/", part, "_task-aim_eyetracking.tsv"),
-                          header=TRUE,
+                          header = TRUE,
                           sep = "\t")
   # Add participant ID column
   part_data$Participant <- part
