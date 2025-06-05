@@ -124,3 +124,6 @@ blank_bg_theme <- theme(panel.grid.major = element_blank(),
 # Theme for legend formatting
 legend_theme <- theme(legend.text = element_text(face = "bold", size = 20), 
                       legend.title = element_text(face = "bold", size = 25))
+# Theme for title formatting
+title_theme <- theme(plot.title = element_text(face = "bold", size = 25, hjust = 0.5), 
+                     legend.key.size=unit(1.3, "cm"))

@@ -1,5 +1,5 @@
 # Set working directory and source initialization file
-setwd("~/GitDir/CodeWithPapers/CategorySpecificAssociativeInference/")
+setwd("~/Downloads/CategorySpecificAssociativeInference/")
 source("Initialise.R")
 
 ################## Read in behavioural data and organise it ##################
@@ -155,6 +155,99 @@ accuracy_trialtypecategory_interac_posthoc <- full_join(
 # Apply multiple comparison correction to p-values
 accuracy_trialtypecategory_interac_posthoc <- 
   correct_p_vals(accuracy_trialtypecategory_interac_posthoc, 
+                 "p")
+
+# Calculate adjusted AC score from the appendix
+dir_correct_testdata <- test_data %>% 
+  pivot_wider(id_cols = c(Participant, category, pairnum, block), 
+              names_from = trialtype,
+              values_from = accuracy) %>% 
+  filter(AB == 1 & BC == 1)
+
+adjaccuracy_trialtypecategory_data <- dir_correct_testdata %>% 
+  group_by(Participant, category) %>% 
+  summarise(TotalTrials = length(Participant),
+            CorrectTrials = sum(AC, na.rm = TRUE),
+            PercentAccuracy = (CorrectTrials/TotalTrials)*100) %>% 
+  select(c(Participant, category, PercentAccuracy)) %>% 
+  rename(AC = PercentAccuracy) %>% 
+  full_join(accuracy_trialtypecategory_data %>% 
+              filter(trialtype %in% c("AB", "BC")) %>% 
+              pivot_wider(id_cols = c(Participant, category), 
+                          names_from = trialtype,
+                          values_from = PercentAccuracy),
+            by = c("Participant", "category")) %>% 
+  pivot_longer(cols = c(AB, BC, AC),
+               names_to = "trialtype",
+               values_to = "PercentAccuracy") %>% 
+  mutate(trialtype = factor(trialtype,
+                            levels = factor_levels$pairtype_test$levels))
+
+# Perform 2x2 repeated measures ANOVA on adjusted accuracy data
+# Factors: category and trial type
+adjaccuracy_trialtypecategory_anova <- 
+  ezANOVA(data = adjaccuracy_trialtypecategory_data,
+          dv = PercentAccuracy,
+          within = c(category, trialtype),
+          wid = Participant,
+          detailed = TRUE)
+
+# Calculate accuracy metrics grouped by participant and trial type
+adjaccuracy_trialtype_data <- dir_correct_testdata %>% 
+  group_by(Participant) %>% 
+  summarise(TotalTrials = length(Participant),
+            CorrectTrials = sum(AC, na.rm = TRUE),
+            PercentAccuracy = (CorrectTrials/TotalTrials)*100) %>% 
+  select(c(Participant, PercentAccuracy)) %>% 
+  rename(AC = PercentAccuracy) %>% 
+  full_join(accuracy_trialtype_data %>% 
+              filter(trialtype %in% c("AB", "BC")) %>% 
+              pivot_wider(id_cols = c(Participant), 
+                          names_from = trialtype,
+                          values_from = PercentAccuracy),
+            by = c("Participant")) %>% 
+  pivot_longer(cols = c(AB, BC, AC),
+               names_to = "trialtype",
+               values_to = "PercentAccuracy") %>% 
+  mutate(trialtype = factor(trialtype,
+                            levels = factor_levels$pairtype_test$levels))
+
+# Perform post-hoc paired t-tests and calculate Cohen's d for trial type main effect
+adjaccuracy_trialtype_main_posthoc <- full_join(
+  # Paired t-test between trial types
+  adjaccuracy_trialtype_data %>%
+    as.data.frame() %>%
+    t_test(PercentAccuracy ~ trialtype,
+           paired = TRUE),
+  # Calculate effect size (Cohen's d)
+  adjaccuracy_trialtype_data %>%
+    as.data.frame() %>%
+    cohens_d(PercentAccuracy ~ trialtype,
+             paired = TRUE),
+  by = join_by(.y., group1, group2, n1, n2)
+)
+
+# Perform post-hoc tests for trial type effects within each category
+adjaccuracy_trialtypecategory_interac_posthoc <- full_join(
+  # Paired t-tests between trial types within each categories
+  adjaccuracy_trialtypecategory_data %>% 
+    as.data.frame() %>% 
+    group_by(category) %>% 
+    t_test(PercentAccuracy ~ trialtype,
+           paired = TRUE),
+  # Calculate effect sizes (Cohen's d)
+  adjaccuracy_trialtypecategory_data %>% 
+    as.data.frame() %>% 
+    group_by(category) %>% 
+    cohens_d(PercentAccuracy ~ trialtype,
+             paired = TRUE),
+  by = join_by(category, .y., group1, group2, n1, n2)
+) %>% 
+  as.data.frame()
+
+# Apply multiple comparison correction to p-values
+adjaccuracy_trialtypecategory_interac_posthoc <- 
+  correct_p_vals(adjaccuracy_trialtypecategory_interac_posthoc, 
                  "p")
 
 ################## Analyse test phase reaction time data ##################
@@ -437,6 +530,50 @@ accuracy_categorytrialtype_plot <-
   scale_fill_manual(values = factor_levels$category$colours) +
   x_axis_theme + y_axis_theme + paper_facet_theme + blank_bg_theme + legend_theme
 
+# Calculate summary statistics for adjusted accuracy data
+adjaccuracy_trialtypecategory_summary <- adjaccuracy_trialtypecategory_data %>% 
+  group_by(trialtype, category) %>% 
+  do(summarise_data(., "PercentAccuracy"))
+
+# Create plot for accuracy
+adjaccuracy_categorytrialtype_plot <- 
+  ggplot(data = adjaccuracy_trialtypecategory_summary, 
+         aes(x = trialtype, 
+             y = Mean, 
+             fill = category, 
+             colour = category))  +
+  # Add chance level line at 50%
+  geom_hline(yintercept = 50, 
+             size = 1, 
+             linetype = "dashed") +
+  geom_dotplot(data = adjaccuracy_trialtypecategory_data, 
+               position = position_dodge(0.7),
+               mapping = aes(x = trialtype, 
+                             y = PercentAccuracy, 
+                             fill = category),
+               binaxis = 'y', 
+               stackdir = 'center', colour = "black", 
+               dotsize = 0.7, alpha = 0.4) +
+  geom_line(mapping = aes(group = category), 
+            position = position_dodge(0.7),
+            linewidth = 1.5) +
+  geom_errorbar(mapping = aes(ymin = Mean-SE, 
+                              ymax = Mean+SE), 
+                width = 0.3, 
+                size = 1.2, 
+                colour = "black", 
+                position = position_dodge(0.7)) +
+  geom_point(size = 7, 
+             shape = 21, 
+             colour = "black", 
+             position = position_dodge(0.7)) +
+  labs(x="Test Type", y="Accuracy", fill="", colour="") + 
+  coord_cartesian(ylim = c(35, 115)) +
+  scale_y_continuous(breaks = c(40, 60, 80, 100)) +
+  scale_color_manual(values = factor_levels$category$colours) +
+  scale_fill_manual(values = factor_levels$category$colours) +
+  x_axis_theme + y_axis_theme + paper_facet_theme + blank_bg_theme + legend_theme
+
 
 # Calculate summary statistics for RT data
 rt_trialtypecategory_summary <- rt_trialtypecategory_data %>% 
@@ -536,11 +673,35 @@ fixnum_categorytypeitemtype_plot <-
 blank <- ggplot() + theme_void()
 (behavioural_plots <- ggarrange(
   # Top row: accuracy and RT plots with blank space for alignment
-  ggarrange(accuracy_categorytrialtype_plot, rt_categorytrialtype_plot, blank, nrow = 1,
-            widths = c(1, 1, 0), legend = "none"),
+  ggarrange(accuracy_categorytrialtype_plot +
+              labs(title = "A) Recognition Accuracy") + 
+              title_theme, 
+            rt_categorytrialtype_plot +
+              labs(title = "B) Reaction Time") + 
+              title_theme, 
+            blank, 
+            nrow = 1,
+            widths = c(1, 1, 0), 
+            legend = "none"),
   # Bottom row: fixation count plot centered
-  ggarrange(blank, fixnum_categorytypeitemtype_plot, blank, nrow = 1,
-            widths = c(0.5, 1, 0.5), legend = "none"),
+  ggarrange(blank, 
+            fixnum_categorytypeitemtype_plot +
+              labs(title = "C) Eye-movement\n Behaviour") + 
+              title_theme,
+            blank, nrow = 1,
+            widths = c(0.5, 1, 0.5), 
+            legend = "bottom"),
   nrow = 2,
   legend = "none"
 ))
+
+# Create from appendix
+(appendix_accuracy_plots <- ggarrange(accuracy_categorytrialtype_plot +
+                                        labs(title = "Raw AC Accuracy") + 
+                                        title_theme, 
+                                      adjaccuracy_categorytrialtype_plot + 
+                                        theme(axis.title.y = element_blank()) +
+                                        labs(title = "Adjusted AC Accuracy") + 
+                                        title_theme, 
+                                      nrow = 1,
+                                      legend = "bottom", common.legend = TRUE))

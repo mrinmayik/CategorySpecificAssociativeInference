@@ -1,5 +1,5 @@
 # Set working directory and source initialization file
-setwd("~/GitDir/CodeWithPapers/CategorySpecificAssociativeInference/")
+setwd("~/Downloads/CategorySpecificAssociativeInference/")
 source("Initialise.R")
 
 # Make a list of ROIs available
