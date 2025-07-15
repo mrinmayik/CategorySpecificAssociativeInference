@@ -24,7 +24,7 @@ library(psychReport)
 
 ################## Path Setup [UPDATE THESE FOR YOUR LOCAL MACHINE] ##################
 # Define base paths for scripts and data
-scripts_path <- "~/Downloads/CategorySpecificAssociativeInference/"
+scripts_path <- "~/CategorySpecificAssociativeInference/"
 
 # Change base_path to the folder that contains the downloaded data from OpenNeuro
 # All other paths are defined relative to base_path

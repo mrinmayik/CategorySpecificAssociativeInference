@@ -1,5 +1,5 @@
 # Set working directory and source initialization file
-setwd("~/Downloads/CategorySpecificAssociativeInference/")
+setwd("~/CategorySpecificAssociativeInference/")
 source("Initialise.R")
 
 # Make a list of ROIs available
@@ -435,7 +435,8 @@ beta_posthoc_studyAB_pairtype_mtl <- beta_posthoc_studyAB_pairtype %>%
   # Apply FDR correction and determine which category shows greater activation
   do(correct_p_vals(., "p")) %>% 
   # Add mean differences and reorganize columns
-  full_join(pairwise_diffs,
+  full_join(pairwise_diffs %>% 
+              filter(Area %in% mtl_rois),
             by = c("Area", "group1", "group2")) %>% 
   relocate(Area) %>% 
   relocate(starts_with("Mean"), .after = n2) %>% 
@@ -672,11 +673,18 @@ anova_tests_detailed_study_pairtypecat <- beta_anova_detailed
 beta_plots_study_pairtypecat <- beta_plots
 beta_posthoc_study_pairtypecat <- beta_posthoc
 
-# Process MTL ROIs separately
-beta_posthoc_study_pairtypecat <- beta_posthoc_study_pairtypecat %>% 
-  filter(Area %in% scene_face_selective) %>% 
-  # Apply FDR correction and determine which category shows greater activation
-  do(correct_p_vals(., "p"))
+beta_posthoc_study_pairtypecat <- 
+  bind_rows(
+    # Keep the FFA ROIs
+    beta_posthoc_study_pairtypecat %>% 
+      filter(Area == "FFA") %>% 
+      mutate(sig = ifelse(p <= 0.05, "*", "")),
+    # Correct for MTL ROIs only
+    beta_posthoc_study_pairtypecat %>% 
+      filter(Area %in% scene_face_selective) %>% 
+      # Apply FDR correction and determine which category shows greater activation
+      do(correct_p_vals(., "p"))
+  )
 
 ####################### STEP 3: Analyse AIM test phase #######################
 # Filter test phase data to include only correct trials
@@ -703,7 +711,7 @@ testbetas_data <- testbetas_data %>%
 beta_anova <- c()
 beta_anova_detailed <- c()
 # Loop through each ROI in the dataset
-for(roi in scene_face_selective){
+for(roi in c(scene_face_selective, "FFA")){
   # Filter data for current ROI
   beta_roi_data <- testbetas_data %>% 
     filter(Area == roi)
@@ -748,7 +756,7 @@ beta_plots <- list()
 beta_posthoc <- c()
 
 # Loop through each ROI
-for(roi in scene_face_selective){
+for(roi in c(scene_face_selective, "FFA")){
   # Filter data for current ROI
   beta_data_roi <- testbetas_data %>%
     filter(Area == roi)
@@ -825,9 +833,6 @@ for(roi in scene_face_selective){
     mutate(Category = factor(Category,
                              levels = factor_levels$category_localiser$levels,
                              labels = factor_levels$category_localiser$labels),
-           Accuracy = factor(Accuracy,
-                             levels = factor_levels$acc_test$levels,
-                             labels = factor_levels$acc_test$labels),
            Hemisphere = factor(Hemisphere,
                                levels = factor_levels$hemisphere$levels,
                                labels = factor_levels$hemisphere$labels),

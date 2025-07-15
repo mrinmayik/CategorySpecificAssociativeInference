@@ -1,5 +1,5 @@
 # Set working directory and source initialization file
-setwd("~/Downloads/CategorySpecificAssociativeInference/")
+setwd("~/CategorySpecificAssociativeInference/")
 source("Initialise.R")
 
 ################## Read in behavioural data and organise it ##################
@@ -160,7 +160,7 @@ accuracy_trialtypecategory_interac_posthoc <-
 # Calculate adjusted AC score from the appendix
 # Filter test data to include only trials where both AB and BC were answered correctly
 dir_correct_testdata <- test_data %>% 
-  pivot_wider(id_cols = c(Participant, category, pairnum, block),  # Reshape data: one row per unique trial
+  pivot_wider(id_cols = c(Participant, category, pairnum, block), # Reshape data: one row per unique pair, trial and block
               names_from = trialtype,                             # Columns for each trial type (AB, BC, AC)
               values_from = accuracy) %>% 
   filter(AB == 1 & BC == 1)                                       # Keep only trials where both AB and BC are correct
@@ -170,7 +170,7 @@ adjaccuracy_trialtypecategory_data <- dir_correct_testdata %>%
   group_by(Participant, category) %>% 
   summarise(
     TotalTrials = length(Participant),                             # Total number of eligible trials
-    CorrectTrials = sum(AC, na.rm = TRUE),                        # Number of correct AC responses
+    CorrectTrials = sum(AC, na.rm = TRUE),                         # Number of correct AC responses
     PercentAccuracy = (CorrectTrials/TotalTrials)*100              # Percent accuracy for AC
   ) %>% 
   select(c(Participant, category, PercentAccuracy)) %>%            # Keep only relevant columns
@@ -184,7 +184,8 @@ adjaccuracy_trialtypecategory_data <- dir_correct_testdata %>%
                   values_from = PercentAccuracy),
     by = c("Participant", "category")
   ) %>% 
-  # Reshape so AB, BC, and AC accuracy are all in one column, with a new column indicating trial type
+  # Reshape to long format so AB, BC, and AC accuracy are all in one column, 
+  # with a new column indicating trial type
   pivot_longer(
     cols = c(AB, BC, AC),
     names_to = "trialtype",
